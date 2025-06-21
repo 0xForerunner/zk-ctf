@@ -54,7 +54,7 @@ async function setupPXE() {
   return pxe;
 }
 
-async function getSponsoredPFCContract() {
+export async function getSponsoredPFCContract() {
   const instance = await getContractInstanceFromDeployParams(
     SponsoredFPCContractArtifact,
     {
@@ -209,7 +209,6 @@ async function createAccountAndDeployContract() {
     // Prepare the sponsored fee payment method
   const sponsoredPFCContract = await getSponsoredPFCContract();
   const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
-
 
   // Send the transaction with the fee payment method
   const tx = await contract.methods.claim(wallet.getAddress()).send({
