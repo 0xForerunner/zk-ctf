@@ -12,17 +12,14 @@ pub contract CTF {
     use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::prelude::{AztecAddress, Map, PublicImmutable, PublicMutable, PrivateMutable};
     use dep::aztec::protocol_types::traits::{Hash, ToField};
-    use dep::aztec::{
+    use aztec::{
         macros::notes::note,
         protocol_types::{traits::{Deserialize, Serialize}},
     };
+    use aztec::protocol_types::traits::Packable;
 
     #[storage]
     struct Storage<Context> {
-        games: Vec<Game<Context>>,
-    }
-
-    struct Game<Context> {
         admin: PublicImmutable<AztecAddress, Context>,
         start: PublicImmutable<u32, Context>,
         end: PublicImmutable<u32, Context>,
@@ -30,36 +27,81 @@ pub contract CTF {
         challenge_fee: PublicImmutable<Field, Context>,
         slash_fee: PublicImmutable<Field, Context>,
         deposit_size: PublicImmutable<Field, Context>,
-        challenges: Map<AztecAddress, Challenge<Context>, Context>,
+        challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
+        challenge_block: Map<AztecAddress, PublicMutable<u32, Context>, Context>,
+        player_flag: Map<AztecAddress, PrivateMutable<FlagNote, Context>, Context>,
+        player_tally: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
     }
 
-    struct Challenge<Context> {
-        challenger: PublicImmutable<AztecAddress, Context>,
-        block: PublicImmutable<u32, Context>,
+    // #[derive(Eq, Serialize, Deserialize, Packable)]
+    // struct GameMeta {
+        // admin: AztecAddress,
+        // start: u32,
+        // end: u32,
+        // join_fee: Field,
+        // challenge_fee: Field,
+        // slash_fee: Field,
+        // deposit_size: Field,
+    // }
+
+    #[derive(Eq, Serialize, Deserialize, Packable)]
+    struct Challenge {
+        challenger: AztecAddress,
+        block: u32,
     }
 
     #[note]
     #[derive(Eq, Serialize, Deserialize)]
     pub struct FlagNote {
+        owner: AztecAddress,
         has_flag: bool,
-        tally: Field,
     }
+
 
     impl FlagNote {
         pub fn new(owner: AztecAddress) -> Self {
-            FlagNote { owner }
+            FlagNote { owner, has_flag: true }
+        }
+    }
+
+    #[note]
+    #[derive(Eq, Serialize, Deserialize)]
+    pub struct TallyNote {
+        owner: AztecAddress,
+        tally: Field,
+    }
+
+    impl TallyNote {
+        pub fn new(owner: AztecAddress) -> Self {
+            TallyNote { owner, tally: 0 }
         }
     }
 
     #[initializer]
     #[private]
     fn constructor() {
-        let new_flag: FlagNote = FlagNote::new(context.msg_sender());
-        storage.current_holder.replace(new_flag).emit(encode_and_encrypt_note(
+        // let new_flag: FlagNote = FlagNote::new(context.msg_sender());
+        // storage.current_holder.replace(new_flag).emit(encode_and_encrypt_note(
+            // &mut context,
+            // context.msg_sender(),
+            // context.msg_sender(),
+        // ));
+    }
+
+    #[private]
+    fn join(game_id: AztecAddress) {
+        let flag_note  = FlagNote::new(context.msg_sender());
+        let tally_note  = TallyNote::new(context.msg_sender());
+        storage.player_flag.at(context.msg_sender()).replace(flag_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
-        ));
+         ));
+        storage.player_tally.at(context.msg_sender()).replace(tally_note).emit(encode_and_encrypt_note(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+         ));
     }
 
     #[private]
