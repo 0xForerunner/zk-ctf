@@ -4,13 +4,23 @@ import {
   Fr,
   type Wallet,
   type AccountWallet,
+  AztecAddressLike,
 } from '@aztec/aztec.js';
 import { EmbeddedWallet } from './embedded-wallet';
-import { EasyPrivateVotingContract } from './artifacts/EasyPrivateVoting';
+// import { EasyPrivateVotingContract } from './artifacts/EasyPrivateVoting';
+import { CTFContract } from './artifacts/CTF';
+// import { createAccountAndDeployContract } from '../scripts/deploy';
 
 // DOM Elements
 const createAccountButton =
   document.querySelector<HTMLButtonElement>('#create-account')!;
+
+
+  const deployContractButton =
+  document.querySelector<HTMLButtonElement>('#deploy-account')!;
+
+
+
 const connectTestAccountButton =
   document.querySelector<HTMLButtonElement>('#connect-test-account')!;
 const voteForm = document.querySelector<HTMLFormElement>('.vote-form')!;
@@ -45,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Register voting contract with wallet/PXE
     displayStatusMessage('Registering contracts...');
     await wallet.registerContract(
-      EasyPrivateVotingContract.artifact,
+      CTFContract.artifact,
       AztecAddress.fromString(deployerAddress),
       Fr.fromString(deploymentSalt),
       [AztecAddress.fromString(deployerAddress)]
@@ -71,6 +81,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
   }
 });
+
+
+
+// deployContractButton.addEventListener('click', async (e) => {
+//     await createAccountAndDeployContract(wallet);
+// })
+
 
 // Create a new account
 createAccountButton.addEventListener('click', async (e) => {
@@ -145,11 +162,14 @@ voteButton.addEventListener('click', async (e) => {
     }
 
     // Prepare contract interaction
-    const votingContract = await EasyPrivateVotingContract.at(
+    const votingContract = await CTFContract.at(
       AztecAddress.fromString(contractAddress),
       connectedAccount
     );
-    const interaction = votingContract.methods.cast_vote(candidate);
+
+    const testAccount0 = '0x2856cf9b9d9655360e136c123ba790938ac26f2a664dc02b6777cacda3b7921f'
+
+    const interaction = votingContract.methods.claim(testAccount0 as unknown as AztecAddressLike);
 
     // Send transaction
     await wallet.sendTransaction(interaction);
@@ -172,27 +192,27 @@ voteButton.addEventListener('click', async (e) => {
 
 // Update the tally
 async function updateVoteTally(account: Wallet) {
-  let results: { [key: number]: number } = {};
+  // let results: { [key: number]: number } = {};
 
-  displayStatusMessage('Updating vote tally...');
+  // displayStatusMessage('Updating vote tally...');
 
-  // Prepare contract interaction
-  const votingContract = await EasyPrivateVotingContract.at(
-    AztecAddress.fromString(contractAddress),
-    account
-  );
+  // // Prepare contract interaction
+  // const votingContract = await EasyPrivateVotingContract.at(
+  //   AztecAddress.fromString(contractAddress),
+  //   account
+  // );
 
-  await Promise.all(
-    Array.from({ length: 5 }, async (_, i) => {
-      const interaction = votingContract.methods.get_vote(i + 1);
-      const value = await wallet.simulateTransaction(interaction);
-      results[i + 1] = value;
-    })
-  );
+  // await Promise.all(
+  //   Array.from({ length: 5 }, async (_, i) => {
+  //     const interaction = votingContract.methods.get_vote(i + 1);
+  //     const value = await wallet.simulateTransaction(interaction);
+  //     results[i + 1] = value;
+  //   })
+  // );
 
-  // Display the tally
-  displayTally(results);
-  displayStatusMessage('');
+  // // Display the tally
+  // displayTally(results);
+  // displayStatusMessage('');
 }
 
 // UI functions
@@ -220,7 +240,9 @@ function displayAccount() {
   }
 
   const address = connectedAccount.getAddress().toString();
-  const content = `Account: ${address.slice(0, 6)}...${address.slice(-4)}`;
+  // const content = `Account: ${address.slice(0, 6)}...${address.slice(-4)}`;
+  const content = `Account: ${address}`;
+
   accountDisplay.textContent = content;
   createAccountButton.style.display = 'none';
   connectTestAccountButton.style.display = 'none';

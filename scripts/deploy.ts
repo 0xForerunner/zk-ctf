@@ -18,7 +18,7 @@ import { getDefaultInitializer } from '@aztec/stdlib/abi';
 import { SponsoredFPCContractArtifact } from '@aztec/noir-contracts.js/SponsoredFPC';
 import { SPONSORED_FPC_SALT } from '@aztec/constants';
 // @ts-ignore
-import { EasyPrivateVotingContract } from '../app/artifacts/EasyPrivateVoting.ts';
+import { CTFContract } from '../app/artifacts/CTF.ts';
 
 const AZTEC_NODE_URL = process.env.AZTEC_NODE_URL || 'http://localhost:8080';
 const PROVER_ENABLED = process.env.PROVER_ENABLED === 'false' ? false : true;
@@ -99,11 +99,11 @@ async function createAccount(pxe: PXE) {
 async function deployContract(pxe: PXE, deployer: Wallet) {
   const salt = Fr.random();
   const contract = await getContractInstanceFromDeployParams(
-    EasyPrivateVotingContract.artifact,
+    CTFContract.artifact,
     {
       publicKeys: PublicKeys.default(),
       constructorArtifact: getDefaultInitializer(
-        EasyPrivateVotingContract.artifact
+        CTFContract.artifact
       ),
       constructorArgs: [deployer.getAddress().toField()],
       deployer: deployer.getAddress(),
@@ -114,11 +114,10 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
   const deployMethod = new DeployMethod(
     contract.publicKeys,
     deployer,
-    EasyPrivateVotingContract.artifact,
-    (address: AztecAddress, wallet: Wallet) =>
-      EasyPrivateVotingContract.at(address, wallet),
+    CTFContract.artifact,
+    (address: AztecAddress, wallet: Wallet) => CTFContract.at(address, wallet),
     [deployer.getAddress().toField()],
-    getDefaultInitializer(EasyPrivateVotingContract.artifact)?.name
+    getDefaultInitializer(CTFContract.artifact)?.name
   );
 
   const sponsoredPFCContract = await getSponsoredPFCContract();
@@ -134,7 +133,7 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
   await provenInteraction.send().wait({ timeout: 120 });
   await pxe.registerContract({
     instance: contract,
-    artifact: EasyPrivateVotingContract.artifact,
+    artifact: CTFContract.artifact,
   });
 
   return {
@@ -177,6 +176,9 @@ async function createAccountAndDeployContract() {
   // Create a new account
   const { wallet, /* signingKey */ } = await createAccount(pxe);
 
+  console.log("DEPLOYER WALLET");
+  console.log(wallet);
+    
   // // Save the wallet info
   // const walletInfo = {
   //   address: wallet.getAddress().toString(),
@@ -198,8 +200,28 @@ async function createAccountAndDeployContract() {
     await writeEnvFile(deploymentInfo);
   }
 
+    // Prepare contract interaction
+    const contract = await CTFContract.at(
+      AztecAddress.fromString(deploymentInfo.contractAddress),
+      wallet
+    );
+
+    // Prepare the sponsored fee payment method
+  const sponsoredPFCContract = await getSponsoredPFCContract();
+  const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
+
+
+  // Send the transaction with the fee payment method
+  const tx = await contract.methods.claim(wallet.getAddress()).send({
+    fee: { paymentMethod: sponsoredPaymentMethod }
+  }).wait();
+  console.log(tx)
+
+
   // Clean up the PXE store
   fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });
+
+
 }
 
 createAccountAndDeployContract().catch((error) => {
