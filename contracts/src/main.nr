@@ -19,13 +19,30 @@ pub contract CTF {
 
     #[storage]
     struct Storage<Context> {
-        current_holder: PrivateMutable<FlagNote, Context>,
+        games: Vec<Game<Context>>,
+    }
+
+    struct Game<Context> {
+        admin: PublicImmutable<AztecAddress, Context>,
+        start: PublicImmutable<u32, Context>,
+        end: PublicImmutable<u32, Context>,
+        join_fee: PublicImmutable<Field, Context>,
+        challenge_fee: PublicImmutable<Field, Context>,
+        slash_fee: PublicImmutable<Field, Context>,
+        deposit_size: PublicImmutable<Field, Context>,
+        challenges: Map<AztecAddress, Challenge<Context>, Context>,
+    }
+
+    struct Challenge<Context> {
+        challenger: PublicImmutable<AztecAddress, Context>,
+        block: PublicImmutable<u32, Context>,
     }
 
     #[note]
     #[derive(Eq, Serialize, Deserialize)]
     pub struct FlagNote {
-        owner: AztecAddress,
+        has_flag: bool,
+        tally: Field,
     }
 
     impl FlagNote {
@@ -63,6 +80,32 @@ pub contract CTF {
         let caller = context.msg_sender();
         let note = storage.current_holder.get_note();
         note.note.owner == caller
+    }
+
+    #[private]
+    fn challenge(game_id: Field, challenged: AztecAddress) {
+        let game = storage.games.at(game_id);
+        let bond = game.meta.read().bond;
+        // …pay bond into game.pool…
+
+        let note = ChallengeNote {
+            game_id,
+            challenger: context.msg_sender(),
+            challenged,
+            deadline_block: context.block_number() + Field::from(1),
+        };
+        game.challenges.insert(challenged.to_field(), note)
+            .emit(encode_and_encrypt_note(&mut context,
+                                        context.msg_sender(),
+                                        challenged));
+    }
+
+    #[private]
+    fn respond(game_id: Field) {
+        let game = storage.games.at(game_id);
+        let mut chal = game.challenges.at(context.msg_sender().to_field()).get_note();
+        // …verify flag ownership, transfer etc…
+        game.challenges.remove(context.msg_sender().to_field());
     }
 
 }
