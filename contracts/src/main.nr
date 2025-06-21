@@ -58,4 +58,11 @@ pub contract CTF {
         }
     }
 
+    #[private]
+    fn has_flag() -> bool {
+        let caller = context.msg_sender();
+        let note = storage.current_holder.get_note();
+        note.note.owner == caller
+    }
+
 }
