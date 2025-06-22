@@ -19,6 +19,7 @@ import { SponsoredFPCContractArtifact } from '@aztec/noir-contracts.js/Sponsored
 import { SPONSORED_FPC_SALT } from '@aztec/constants';
 // @ts-ignore
 import { EasyPrivateVotingContract } from '../app/artifacts/EasyPrivateVoting.ts';
+import { CTFContract } from '../app/artifacts/CTF.js';
 
 const AZTEC_NODE_URL = process.env.AZTEC_NODE_URL || 'http://localhost:8080';
 const PROVER_ENABLED = process.env.PROVER_ENABLED === 'false' ? false : true;
@@ -175,7 +176,9 @@ async function createAccountAndDeployContract() {
   });
 
   // Create a new account
-  const { wallet, /* signingKey */ } = await createAccount(pxe);
+  const { wallet: wallet1, /* signingKey */ } = await createAccount(pxe);
+  const { wallet: wallet2, /* signingKey */ } = await createAccount(pxe);
+  const { wallet: wallet3, /* signingKey */ } = await createAccount(pxe);
 
   // // Save the wallet info
   // const walletInfo = {
@@ -191,7 +194,33 @@ async function createAccountAndDeployContract() {
   // console.log('\n\n\nWallet info saved to wallet-info.json\n\n\n');
 
   // Deploy the contract
-  const deploymentInfo = await deployContract(pxe, wallet);
+  const deploymentInfo = await deployContract(pxe, wallet1);
+
+    // Prepare contract interaction
+    const contract1 = await CTFContract.at(
+      AztecAddress.fromString(deploymentInfo.contractAddress),
+      wallet1
+    );
+
+    const contract2 = await CTFContract.at(
+      AztecAddress.fromString(deploymentInfo.contractAddress),
+      wallet2
+    );
+
+    const contract3 = await CTFContract.at(
+      AztecAddress.fromString(deploymentInfo.contractAddress),
+      wallet3
+    );
+
+      // Prepare the sponsored fee payment method
+    const sponsoredPFCContract = await getSponsoredPFCContract();
+    const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
+
+    // Send the transaction with the fee payment method
+    const tx = await contract1.methods.join().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+    console.log(tx)
 
   // Save the deployment info to app/public
   if (WRITE_ENV_FILE) {
