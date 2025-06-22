@@ -130,14 +130,14 @@ pub contract CTF {
     fn join(want_flag: bool, block_number: u32) {
         let token = storage.token.read();
         let deposit_size = storage.deposit_size.read();
-        // Token::at(token)
-            // .transfer_in_private(
-                // context.msg_sender(),
-                // context.this_address(),
-                // deposit_size,
-                // 0
-            // )
-            // .call(&mut context);  
+        Token::at(token)
+            .transfer_to_public(
+                context.msg_sender(),
+                context.this_address(),
+                deposit_size,
+                0
+            )
+            .call(&mut context);  
 
         if(want_flag) {
             let capture_note = CaptureNote::new(context.msg_sender(), block_number);
@@ -176,14 +176,6 @@ pub contract CTF {
     fn _join(sender: AztecAddress) {
         // assert(context.block_number() as u32 < storage.start.read(), "Game has already started");
         storage.deposits.at(sender).write(storage.deposit_size.read());
-        // Token::at(token)
-            // .transfer_to_public(
-                // context.this_address(),
-                // context.this_address(),
-                // deposit_size,
-                // 0
-            // )
-            // .call(&mut context);  
     }
 
     #[public]
@@ -290,14 +282,14 @@ pub contract CTF {
         assert(context.block_number() as u32 > storage.start.read(), "Game has not started");
 
         let challenge_fee = storage.challenge_fee.read();
-        // Token::at(storage.token.read())
-            // .transfer_in_public(
-                // context.this_address(),
-                // context.msg_sender(),
-                // challenge_fee,
-                // 0
-            // )
-            // .call(&mut context);
+        Token::at(storage.token.read())
+            .transfer_in_public(
+                context.this_address(),
+                context.msg_sender(),
+                challenge_fee,
+                0
+            )
+            .call(&mut context);
         storage.pot.write(storage.pot.read() + challenge_fee);
 
         // Ensure the game is initialized
