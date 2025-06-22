@@ -152,60 +152,50 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
   };
 }
 
-// async function deployTokenContract(pxe: PXE, deployer: Wallet) {
+async function deployTokenContract(pxe: PXE, deployer: Wallet) {
 
-//   const deployMethod = TokenContract.deploy(deployer, deployer.getAddress(), 'Token', 'TKN', 18);
+  const deployMethod = TokenContract.deploy(deployer, deployer.getAddress(), 'Token', 'TKN', 18);
 
-//   // const salt = Fr.random();
-//   // const contract = await getContractInstanceFromDeployParams(
-//   //   TokenContract.artifact,
-//   //   {
-//   //     publicKeys: PublicKeys.default(),
-//   //     constructorArtifact: getDefaultInitializer(
-//   //       TokenContract.artifact
-//   //     ),
-//   //     constructorArgs: [deployer.getAddress().toField()],
-//   //     deployer: deployer.getAddress(),
-//   //     salt,
-//   //   }
-//   // );
+  const salt = Fr.random();
+  const contract = await getContractInstanceFromDeployParams(
+    TokenContract.artifact,
+    {
+      publicKeys: PublicKeys.default(),
+      constructorArtifact: getDefaultInitializer(
+        TokenContract.artifact
+      ),
+      constructorArgs: [deployer.getAddress().toField()],
+      deployer: deployer.getAddress(),
+      salt,
+    }
+  );
 
-//   // const deployMethod = new DeployMethod(
-//   //   contract.publicKeys,
-//   //   deployer,
-//   //   TokenContract.artifact,
-//   //   (address: AztecAddress, wallet: Wallet) =>
-//   //   TokenContract.at(address, wallet),
-//   //   [deployer.getAddress().toField()],
-//   //   // getDefaultInitializer(TokenContract.artifact)?.name
-//   // );
+  const sponsoredPFCContract = await getSponsoredPFCContract();
 
-//   const sponsoredPFCContract = await getSponsoredPFCContract();
+  const provenInteraction = await deployMethod.prove({
+    contractAddressSalt: salt,
+    fee: {
+      paymentMethod: new SponsoredFeePaymentMethod(
+        sponsoredPFCContract.address
+      ),
+    },
+  });
+  await provenInteraction.send().wait({ timeout: 120 });
+  await pxe.registerContract({
+    instance: contract,
+    artifact: CTFContract.artifact,
+  });
 
-//   const provenInteraction = await deployMethod.prove({
-//     contractAddressSalt: salt,
-//     fee: {
-//       paymentMethod: new SponsoredFeePaymentMethod(
-//         sponsoredPFCContract.address
-//       ),
-//     },
-//   });
-//   await provenInteraction.send().wait({ timeout: 120 });
-//   await pxe.registerContract({
-//     instance: contract,
-//     artifact: CTFContract.artifact,
-//   });
-
-//   return {
-//     contractAddress: contract.address.toString(),
-//     deployerAddress: deployer.getAddress().toString(),
-//     deploymentSalt: salt.toString(),
-//   };
-// }
+  return {
+    contractAddress: contract.address.toString(),
+    deployerAddress: deployer.getAddress().toString(),
+    deploymentSalt: salt.toString(),
+  };
+}
 
 
-async function writeEnvFile(deploymentInfo) {
-  const envFilePath = path.join(import.meta.dirname, '../.env');
+async function writeEnvFile(deploymentInfo, fileName) {
+  const envFilePath = path.join(import.meta.dirname, `../.${fileName}`);
   const envConfig = Object.entries({
     CONTRACT_ADDRESS: deploymentInfo.contractAddress,
     DEPLOYER_ADDRESS: deploymentInfo.deployerAddress,
@@ -244,7 +234,10 @@ async function createAccountAndDeployContract() {
 
   const deploymentInfo = await deployContract(pxe, wallet1);
 
-  await writeEnvFile(deploymentInfo);
+  const tokenDeploymentInfo = await deployTokenContract(pxe, wallet1)
+
+  await writeEnvFile(tokenDeploymentInfo,'env.token');
+  await writeEnvFile(deploymentInfo,'env.main');
   
   // TODO: CAN BE REPLACED
   const contractAddress = deploymentInfo.contractAddress
@@ -278,7 +271,7 @@ async function createAccountAndDeployContract() {
       0,
       0,
       0,
-      wallet1.getAddress()// Fake token address
+      tokenDeploymentInfo.contractAddress
       ).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
@@ -290,7 +283,6 @@ async function createAccountAndDeployContract() {
     contract1.methods.join(true, blockNumber2).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
-
 
     console.log("User 1 joined the game holding the flag")
 

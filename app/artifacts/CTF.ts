@@ -38,6 +38,12 @@ import CTFContractArtifactJson from './private_voting-CTF.json' with { type: 'js
 export const CTFContractArtifact = loadContractArtifact(CTFContractArtifactJson as NoirCompiledContract);
 
 
+      export type TallyEvent = {
+        address: AztecAddressLike
+tally: (bigint | number)
+      }
+    
+
       export type ChallengeEvent = {
         challenger: AztecAddressLike
 defender: AztecAddressLike
@@ -121,7 +127,7 @@ export class CTFContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'> {
+  public static get storage(): ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'token' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'> {
       return {
         start: {
       slot: new Fr(1n),
@@ -141,55 +147,55 @@ slash_fee: {
 deposit_size: {
       slot: new Fr(11n),
     },
-is_init: {
+token: {
       slot: new Fr(13n),
     },
 deposits: {
-      slot: new Fr(14n),
-    },
-challenger: {
       slot: new Fr(15n),
     },
-challenge_block: {
+challenger: {
       slot: new Fr(16n),
     },
-final_score: {
+challenge_block: {
       slot: new Fr(17n),
     },
-game_over: {
+final_score: {
       slot: new Fr(18n),
     },
 winner: {
-      slot: new Fr(22n),
+      slot: new Fr(19n),
     },
 winner_score: {
-      slot: new Fr(26n),
+      slot: new Fr(23n),
     },
 first_capture: {
-      slot: new Fr(30n),
+      slot: new Fr(27n),
     },
 capture_note: {
-      slot: new Fr(34n),
+      slot: new Fr(31n),
     },
 tally_note: {
-      slot: new Fr(35n),
+      slot: new Fr(32n),
     }
-      } as ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'>;
+      } as ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'token' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'>;
     }
     
 
-  public static get notes(): ContractNotes<'ValueNote' | 'TallyNote' | 'CaptureNote'> {
+  public static get notes(): ContractNotes<'UintNote' | 'ValueNote' | 'CaptureNote' | 'TallyNote'> {
     return {
-      ValueNote: {
+      UintNote: {
+          id: new NoteSelector(1),
+        },
+ValueNote: {
           id: new NoteSelector(0),
         },
-TallyNote: {
+CaptureNote: {
           id: new NoteSelector(2),
         },
-CaptureNote: {
-          id: new NoteSelector(1),
+TallyNote: {
+          id: new NoteSelector(3),
         }
-    } as ContractNotes<'ValueNote' | 'TallyNote' | 'CaptureNote'>;
+    } as ContractNotes<'UintNote' | 'ValueNote' | 'CaptureNote' | 'TallyNote'>;
   }
   
 
@@ -199,14 +205,17 @@ CaptureNote: {
     /** challenge(address: struct) */
     challenge: ((address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** claim_deposit() */
+    claim_deposit: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** end_game() */
     end_game: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** has_flag() */
     has_flag: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** initialize(start: integer, end: integer, join_fee: field, challenge_fee: field, slash_fee: field, deposit_size: field) */
-    initialize: ((start: (bigint | number), end: (bigint | number), join_fee: FieldLike, challenge_fee: FieldLike, slash_fee: FieldLike, deposit_size: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** initialize(start: integer, end: integer, join_fee: field, challenge_fee: field, slash_fee: field, deposit_size: integer, token: struct) */
+    initialize: ((start: (bigint | number), end: (bigint | number), join_fee: FieldLike, challenge_fee: FieldLike, slash_fee: FieldLike, deposit_size: (bigint | number), token: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** join(want_flag: boolean, block_number: integer) */
     join: ((want_flag: boolean, block_number: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -237,9 +246,42 @@ CaptureNote: {
   };
 
   
-    public static get events(): { ChallengeEvent: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
+    public static get events(): { TallyEvent: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] }, ChallengeEvent: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
-      ChallengeEvent: {
+      TallyEvent: {
+        abiType: {
+    "kind": "struct",
+    "fields": [
+        {
+            "name": "address",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
+                    }
+                ],
+                "path": "aztec::protocol_types::address::aztec_address::AztecAddress"
+            }
+        },
+        {
+            "name": "tally",
+            "type": {
+                "kind": "integer",
+                "sign": "unsigned",
+                "width": 32
+            }
+        }
+    ],
+    "path": "CTF::TallyEvent"
+},
+        eventSelector: EventSelector.fromString("0x6f0368a2"),
+        fieldNames: ["address","tally"],
+      },
+ChallengeEvent: {
         abiType: {
     "kind": "struct",
     "fields": [
