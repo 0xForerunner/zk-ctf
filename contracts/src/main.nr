@@ -24,6 +24,17 @@ pub contract CTF {
     };
     use std::convert::AsPrimitive;
 
+use aztec::oracle::random::{random, rand_oracle};   // returns a Field
+
+/// Returns a random u32 in the range [0, n)
+#[public]
+fn rand_u32(n: u32) -> u32 {
+    // let r: Field = random();
+    let r_field: Field = rand_oracle();
+    let r: u32 = r_field as u32;
+    (r % n).to_u32() 
+}
+
     #[storage]
     struct Storage<Context> {
         start: PublicImmutable<u32, Context>,
@@ -32,6 +43,8 @@ pub contract CTF {
         challenge_fee: PublicImmutable<Field, Context>,
         slash_fee: PublicImmutable<Field, Context>,
         deposit_size: PublicImmutable<Field, Context>,
+        is_init: PublicMutable<bool, Context>,
+        num_players: PublicMutable<u32, Context>,
         deposits: Map<AztecAddress, PublicMutable<Field, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
@@ -118,12 +131,14 @@ pub contract CTF {
         storage.challenge_fee.initialize(challenge_fee);
         storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
+        storage.is_init.write(false);
+        storage.num_players.write(0);
     }
 
     #[private]
     fn join(game_id: AztecAddress) {
-        let capture_note  = CaptureNote::new(context.msg_sender());
-        let tally_note  = TallyNote::new(context.msg_sender());
+        let capture_note = CaptureNote::new(context.msg_sender());
+        let tally_note = TallyNote::new(context.msg_sender());
         storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
@@ -134,6 +149,17 @@ pub contract CTF {
             context.msg_sender(),
             context.msg_sender(),
          ));
+
+        CTF::at(context.this_address())
+            ._join()
+            .enqueue(&mut context);
+    }
+
+    #[public]
+    #[internal]
+    fn _join() {
+        let prev = storage.num_players.read();
+        storage.num_players.write(prev + 1);
     }
 
     #[view]
@@ -192,6 +218,12 @@ pub contract CTF {
 
     #[public]
     fn challenge(address: AztecAddress) {
+        // Ensure the game is initialized
+        if !storage.is_init.read() {
+            
+        }
+
+
         let challenger = storage.challenger.at(address).read();
     
         // Abort if someone has already written to this key
@@ -244,7 +276,7 @@ pub contract CTF {
             capture_block: challenge_block,
             randomness
         };
-        slot.replace(challenger_capture_note).emit(encode_and_encrypt_note(
+        challenger_slot.replace(challenger_capture_note).emit(encode_and_encrypt_note(
             &mut context,
             challenger,
             context.msg_sender(),
