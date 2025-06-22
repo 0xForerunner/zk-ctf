@@ -230,36 +230,41 @@ pub contract CTF {
 
     #[private]
     fn respond(challenger: AztecAddress) {
-        let slot = storage.capture_note.at(context.msg_sender());
-        let capture_note = slot.get_note().note;
+        let responder_slot = storage.capture_note.at(context.msg_sender());
+        let capture_note = responder_slot.get_note().note;
         let challenge_block = storage.challenge_block.at(context.msg_sender()).get_current_value();
 
         let tally_note = storage.tally_note.at(context.msg_sender()).get_note().note;
         let mut new_tally = tally_note.tally;
-
+        let mut new_capture_note = capture_note;
+        let randomness: Field = unsafe { random() };
+        let mut challenger_capture_note = CaptureNote {
+            owner: challenger,
+            capture_block: 0,
+            randomness
+        };
 
         if capture_note.capture_block != 0 {
             new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
+            let new_capture_note = CaptureNote::new(context.msg_sender(), 0);
+            let challenger_capture_note = CaptureNote {
+                owner: challenger,
+                capture_block: challenge_block,
+                randomness
+            };
         }
 
         // Relinquish the flag
         // TODO: FIX ME, need block number
-        let new_capture_note = CaptureNote::new(challenger, challenge_block);
-        slot.initialize_or_replace(new_capture_note).emit(encode_and_encrypt_note(
+        let new_capture_note = CaptureNote::new(context.msg_sender(), 0);
+        responder_slot.initialize_or_replace(new_capture_note).emit(encode_and_encrypt_note(
             &mut context,
-            challenger,
+            context.msg_sender(),
             context.msg_sender(),
         ));
 
         // emit the old note to the challenger
         let challenger_slot = storage.capture_note.at(challenger);
-        
-        let randomness: Field = unsafe { random() };
-        let challenger_capture_note = CaptureNote {
-            owner: challenger,
-            capture_block: challenge_block,
-            randomness
-        };
         challenger_slot.initialize_or_replace(challenger_capture_note).emit(encode_and_encrypt_note(
             &mut context,
             challenger,
@@ -282,14 +287,4 @@ pub contract CTF {
     #[public]
     fn nothing() {
     }
-
-
-    // /// Returns a random u32 in the range [0, n)
-    // #[public]
-    // fn rand_u32(n: u32) -> u32 {
-    //     // let r: Field = random();
-    //     let r_field: Field = rand_oracle();
-    //     let r: u32 = r_field as u32;
-    //     r % n
-    // }
 }
