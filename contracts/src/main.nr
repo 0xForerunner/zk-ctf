@@ -2,7 +2,6 @@ use dep::aztec::macros::aztec;
 
 #[aztec]
 pub contract CTF {
-    use dep::aztec::oracle::random::random;
     use aztec::{
         macros::{functions::{private, public, view}, storage::{storage}},
         messages::logs::note::encode_and_encrypt_note};
@@ -24,7 +23,7 @@ pub contract CTF {
     };
     use std::convert::AsPrimitive;
 
-use aztec::oracle::random::{random, rand_oracle};   // returns a Field
+    use aztec::oracle::random::{random, rand_oracle};   // returns a Field
 
 /// Returns a random u32 in the range [0, n)
 #[public]
