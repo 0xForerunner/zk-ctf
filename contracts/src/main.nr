@@ -104,7 +104,7 @@ pub contract CTF {
 
     #[view]
     #[private]
-    fn tally() -> Field {
+    fn tally() -> u32 {
         let note = storage.tally_note.at(context.msg_sender()).get_note();
         note.note.tally
     }
