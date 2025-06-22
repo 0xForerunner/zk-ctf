@@ -25,7 +25,6 @@ use dep::value_note::value_note::ValueNote;
 
     #[storage]
     struct Storage<Context> {
-        admin: PublicImmutable<AztecAddress, Context>,
         start: PublicImmutable<u32, Context>,
         end: PublicImmutable<u32, Context>,
         join_fee: PublicImmutable<Field, Context>,
@@ -79,6 +78,24 @@ use dep::value_note::value_note::ValueNote;
         challenger: AztecAddress,
         defender: AztecAddress,
         block: Field
+    }
+
+    #[initializer]
+    #[public]
+    fn initialize(
+        start: u32, 
+        end: u32,
+        join_fee: Field,
+        challenge_fee: Field,
+        slash_fee: Field,
+        deposit_size: Field,
+    ) {
+        storage.start.initialize(start);
+        storage.end.initialize(end);
+        storage.join_fee.initialize(join_fee);
+        storage.challenge_fee.initialize(challenge_fee);
+        storage.slash_fee.initialize(slash_fee);
+        storage.deposit_size.initialize(deposit_size);
     }
 
     #[private]
