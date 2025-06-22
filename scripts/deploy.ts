@@ -249,6 +249,50 @@ async function createAccountAndDeployContract() {
 
   const blockNumber = await pxe.getBlockNumber()
 
+  const tokenContract1 = await TokenContract.at(
+    AztecAddress.fromString(tokenDeploymentInfo.contractAddress),
+    wallet1
+  );
+
+  const tokenContract3 = await TokenContract.at(
+    AztecAddress.fromString(tokenDeploymentInfo.contractAddress),
+    wallet3
+  );
+
+
+        // Prepare the sponsored fee payment method
+  const sponsoredPFCContract = await getSponsoredPFCContract();
+  const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
+    
+
+  const bigAmount = 10000000000000000;
+  const smallAmount = 1000000000;
+
+
+  await tokenContract1.methods.mint_to_public(wallet1.getAddress(), bigAmount).send({
+    fee: { paymentMethod: sponsoredPaymentMethod }
+  }).wait()
+
+  console.log("minted public to wallet 1");
+
+  await tokenContract1.methods.mint_to_private(wallet1.getAddress(), wallet1.getAddress(), smallAmount).send({
+    fee: { paymentMethod: sponsoredPaymentMethod }
+  }).wait()
+
+  console.log("minted private to wallet 1");
+
+  await tokenContract1.methods.mint_to_public(wallet3.getAddress(), bigAmount).send({
+    fee: { paymentMethod: sponsoredPaymentMethod }
+  }).wait()
+
+  console.log("minted public to wallet 3");
+
+  // await tokenContract1.methods.mint_to_private(wallet3.getAddress(), wallet3.getAddress(), smallAmount).send({
+  //   fee: { paymentMethod: sponsoredPaymentMethod }
+  // }).wait()
+
+  // console.log("minted private to wallet 3");
+
     const contract1 = await CTFContract.at(
       AztecAddress.fromString(contractAddress),
       wallet1
@@ -264,17 +308,13 @@ async function createAccountAndDeployContract() {
       wallet3
     );
 
-      // Prepare the sponsored fee payment method
-    const sponsoredPFCContract = await getSponsoredPFCContract();
-    const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
-      
     await contract1.methods.initialize(
       blockNumber,
       blockNumber + 10,
+      blockNumber + 15,
       0,
-      0,
-      0,
-      0,
+      1000,
+      1000000000,
       tokenDeploymentInfo.contractAddress
       ).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
