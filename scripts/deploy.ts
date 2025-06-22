@@ -195,6 +195,8 @@ async function createAccountAndDeployContract() {
   // Deploy the contract
   const deploymentInfo = await deployContract(pxe, wallet1);
 
+  const blockNumber = await pxe.getBlockNumber()
+
     // Prepare contract interaction
     const contract1 = await CTFContract.at(
       AztecAddress.fromString(deploymentInfo.contractAddress),
@@ -214,6 +216,23 @@ async function createAccountAndDeployContract() {
       // Prepare the sponsored fee payment method
     const sponsoredPFCContract = await getSponsoredPFCContract();
     const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
+
+
+    // Get block number
+
+    await contract1.methods.initialize({
+      start: blockNumber,
+      end: blockNumber + 10,
+      join_fee: 0,
+      challenge_fee: 0,
+      slash_fee: 0,
+      deposit_size: 0
+      deposit_size: 0
+    }).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    })
+
+
 
     // All users join
     await contract1.methods.join().send({
