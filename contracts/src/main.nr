@@ -17,6 +17,7 @@ pub contract CTF {
         protocol_types::{traits::{Deserialize, Serialize}},
     };
     use aztec::protocol_types::traits::Packable;
+use dep::value_note::value_note::ValueNote;
 
     use aztec::{
         macros::{events::event}
@@ -31,6 +32,7 @@ pub contract CTF {
         challenge_fee: PublicImmutable<Field, Context>,
         slash_fee: PublicImmutable<Field, Context>,
         deposit_size: PublicImmutable<Field, Context>,
+        deposits: Map<AztecAddress, PublicMutable<Field, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
         capture_note: Map<AztecAddress, PrivateMutable<CaptureNote, Context>, Context>,
@@ -80,7 +82,21 @@ pub contract CTF {
     }
 
     #[private]
-    fn join() {
+    fn join(game_id: AztecAddress) {
+
+        let amount: Field = storage.deposit_size.read();            // immutable
+        // let deposit_note  = ValueNote {                             // struct fields
+
+        // Emit encrypted log so the contract (recipient) can decrypt & spend later.
+        // The *sender* is the player; the *recipient* is the contract itself.
+        encode_and_encrypt_note(
+            &mut context,
+            context.this_address(),
+            context.msg_sender(),
+        )
+        .emit_note(deposit_note);  
+
+    
         let capture_note  = CaptureNote::new(context.msg_sender());
         let tally_note  = TallyNote::new(context.msg_sender());
         storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
@@ -125,6 +141,23 @@ pub contract CTF {
 
     }
 
+    #[public]
+    fn slash(address: AztecAddress) {
+        let challenger = storage.challenger.at(address).read();
+    
+        // Abort if someone has already written to this key
+        assert(challenger == context.msg_sender(), "You are not the challenger for this address");
+
+    let reward = ValueNote::new(
+        context.msg_sender(),
+        storage.slash_fee.read(),
+    );
+
+    encode_and_encrypt_note(&mut context, caller, context.this_address())
+        .emit_note(reward);
+
+    }
+
     #[private]
     fn respond(challenger: AztecAddress) {
         let slot = storage.capture_note.at(context.msg_sender());
@@ -139,7 +172,6 @@ pub contract CTF {
         if capture_note.capture_block != 0 {
             new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
         }
-
 
         // Relinquish the flag
         let new_capture_note = CaptureNote::new(context.msg_sender());
