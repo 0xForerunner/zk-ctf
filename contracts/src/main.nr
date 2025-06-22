@@ -58,7 +58,7 @@ pub contract CTF {
     #[derive(Eq, Serialize, Deserialize)]
     pub struct TallyNote {
         owner: AztecAddress,
-        tally: Field,
+        tally: u32,
     }
 
     impl TallyNote {
@@ -121,8 +121,18 @@ pub contract CTF {
     #[private]
     fn respond(challenger: AztecAddress) {
         let slot = storage.capture_note.at(context.msg_sender());
-        let note = slot.get_note().note;
-        slot.replace(note).emit(encode_and_encrypt_note(
+        let capture_note = slot.get_note().note;
+
+
+        let tally_note = storage.tally_note.at(context.msg_sender()).get_note().note;
+        let new_tally = tally_note.tally - capture_note.capture_block;
+
+        if capture_note.capture_block != 0 {
+            // Player has the flag, so we relinquish it
+
+        }
+
+        slot.replace(capture_note).emit(encode_and_encrypt_note(
             &mut context,
             challenger,
             context.msg_sender(),
