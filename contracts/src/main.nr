@@ -38,7 +38,7 @@ fn rand_u32(n: u32) -> u32 {
     #[storage]
     struct Storage<Context> {
         start: PublicImmutable<u32, Context>,
-        end: PublicImmutable<Field, Context>,
+        end: PublicImmutable<u32, Context>,
         join_fee: PublicImmutable<Field, Context>,
         challenge_fee: PublicImmutable<Field, Context>,
         slash_fee: PublicImmutable<Field, Context>,
@@ -171,9 +171,9 @@ fn rand_u32(n: u32) -> u32 {
 
     #[public]
     fn end_game() {
-        let current_block = context.block_number();
+        let current_block = context.block_number() as u32;
         // You can now use current_block for your logic
-        if (compare(current_block, Comparator.GT, storage.end.read())) {
+        if current_block > storage.end.read() {
             storage.game_over.schedule_value_change(true);
         }
     }
@@ -181,8 +181,8 @@ fn rand_u32(n: u32) -> u32 {
     #[public]
     fn winner() -> AztecAddress {
         let mut winner = AztecAddress::zero();
-        let current_block = context.block_number();
-        if (compare(current_block, Comparator.GT, storage.end.read())) {
+        let current_block = context.block_number() as u32;
+        if current_block > storage.end.read() {
             winner = storage.winner.get_current_value();
         }
 
