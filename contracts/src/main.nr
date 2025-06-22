@@ -217,7 +217,7 @@ pub contract CTF {
         let challenger = storage.challenger.at(address).read();
     
         // Abort if someone has already written to this key
-        assert(challenger != AztecAddress::zero(), "Challenge already exists for this address");
+        assert(challenger == AztecAddress::zero(), "Challenge already exists for this address");
 
         let challenger = context.msg_sender();
 
@@ -253,6 +253,7 @@ pub contract CTF {
             randomness
         };
 
+        // If they have captured before and its a succesful capture by the challenger, update the tally
         if capture_note.capture_block != 0 {
             new_tally_note.tally = new_tally_note.tally + challenge_block - capture_note.capture_block;
             new_capture_note = CaptureNote::new(context.msg_sender(), 0);

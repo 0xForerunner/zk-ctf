@@ -202,9 +202,6 @@ async function createAccountAndDeployContract() {
 
   const blockNumber = await pxe.getBlockNumber()
 
-  console.log("BLOKC NUMBER")
-  console.log( blockNumber)
-
     const contract1 = await CTFContract.at(
       AztecAddress.fromString(deploymentInfo.contractAddress),
       wallet1
@@ -243,7 +240,7 @@ async function createAccountAndDeployContract() {
 
     const blockNumber2 = await pxe.getBlockNumber()
 
-    await contract1.methods.join(true, blockNumber2).send({
+    contract1.methods.join(true, blockNumber2).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
@@ -255,7 +252,6 @@ async function createAccountAndDeployContract() {
     //   fee: { paymentMethod: sponsoredPaymentMethod }
     // }).wait()
 
-
     console.log("User 2 joined the game")
 
     await contract3.methods.join(false, 0).send({
@@ -266,7 +262,7 @@ async function createAccountAndDeployContract() {
 
     const user1HasFlag = await contract1.methods.has_flag().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    });
+    }).wait();
 
     console.log("DOES USER 1 have flag???" , user1HasFlag);
 
@@ -290,7 +286,6 @@ async function createAccountAndDeployContract() {
     }).wait();
 
     console.log("Block passes");
-
 
     // User 1 responds to challenge and User 2 gets the flag
     await contract1.methods.respond(wallet2.getAddress()).send({
