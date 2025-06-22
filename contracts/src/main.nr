@@ -3,7 +3,7 @@ use dep::aztec::macros::aztec;
 #[aztec]
 pub contract CTF {
     use aztec::{
-        macros::{functions::{private, public, utility}, storage::{storage, storage_no_init}},
+        macros::{functions::{private, public, utility, view}, storage::{storage, storage_no_init}},
         messages::logs::note::encode_and_encrypt_note};
 
     use dep::aztec:: macros::{
@@ -117,29 +117,23 @@ pub contract CTF {
         }
     }
 
+    #[view]
     #[private]
     fn has_flag() -> bool {
-        let caller = context.msg_sender();
-        let note = storage.current_holder.get_note();
-        note.note.owner == caller
+        let note = storage.player_flag.at(context.msg_sender()).get_note();
+        note.note.has_flag
     }
 
+    #[view]
     #[private]
-    fn challenge(game_id: Field, challenged: AztecAddress) {
-        let game = storage.games.at(game_id);
-        let bond = game.meta.read().bond;
-        // …pay bond into game.pool…
+    fn tally() -> Field {
+        let note = storage.player_tally.at(context.msg_sender()).get_note();
+        note.note.tally
+    }
 
-        let note = ChallengeNote {
-            game_id,
-            challenger: context.msg_sender(),
-            challenged,
-            deadline_block: context.block_number() + Field::from(1),
-        };
-        game.challenges.insert(challenged.to_field(), note)
-            .emit(encode_and_encrypt_note(&mut context,
-                                        context.msg_sender(),
-                                        challenged));
+    #[public]
+    fn challenge(address: AztecAddress) {
+        let slot = storage.challenger.at(address).read();
     }
 
     #[private]
