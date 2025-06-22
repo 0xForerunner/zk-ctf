@@ -22,6 +22,7 @@ import { CTFContract } from '../app/artifacts/CTF.ts';
 import { ADDRGETNETWORKPARAMS } from 'dns';
 import { CheatCodes } from '@aztec/aztec.js/testing';
 import { WALLETS } from './generate_wallets.ts';
+import { TokenContract } from '@aztec/noir-contracts.js/Token';
 
 const AZTEC_NODE_URL = process.env.AZTEC_NODE_URL || 'http://localhost:8080';
 const PROVER_ENABLED = process.env.PROVER_ENABLED === 'false' ? false : true;
@@ -76,10 +77,6 @@ async function createAccount(pxe: PXE, index: number) {
   let secretKeyFormat = Fr.fromHexString(secretKey)
   let signingKeyFormat = new Buffer(signingKey, 'hex')
   
-
-  // const salt = Fr.random();
-  // const secretKey = Fr.random();
-  // const signingKey = Buffer.alloc(32, Fr.random().toBuffer());
   const ecdsaAccount = await getEcdsaRAccount(pxe, secretKeyFormat, signingKeyFormat, saltFormat);
 
   const deployMethod = await ecdsaAccount.getDeployMethod();
@@ -155,6 +152,58 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
   };
 }
 
+// async function deployTokenContract(pxe: PXE, deployer: Wallet) {
+
+//   const deployMethod = TokenContract.deploy(deployer, deployer.getAddress(), 'Token', 'TKN', 18);
+
+//   // const salt = Fr.random();
+//   // const contract = await getContractInstanceFromDeployParams(
+//   //   TokenContract.artifact,
+//   //   {
+//   //     publicKeys: PublicKeys.default(),
+//   //     constructorArtifact: getDefaultInitializer(
+//   //       TokenContract.artifact
+//   //     ),
+//   //     constructorArgs: [deployer.getAddress().toField()],
+//   //     deployer: deployer.getAddress(),
+//   //     salt,
+//   //   }
+//   // );
+
+//   // const deployMethod = new DeployMethod(
+//   //   contract.publicKeys,
+//   //   deployer,
+//   //   TokenContract.artifact,
+//   //   (address: AztecAddress, wallet: Wallet) =>
+//   //   TokenContract.at(address, wallet),
+//   //   [deployer.getAddress().toField()],
+//   //   // getDefaultInitializer(TokenContract.artifact)?.name
+//   // );
+
+//   const sponsoredPFCContract = await getSponsoredPFCContract();
+
+//   const provenInteraction = await deployMethod.prove({
+//     contractAddressSalt: salt,
+//     fee: {
+//       paymentMethod: new SponsoredFeePaymentMethod(
+//         sponsoredPFCContract.address
+//       ),
+//     },
+//   });
+//   await provenInteraction.send().wait({ timeout: 120 });
+//   await pxe.registerContract({
+//     instance: contract,
+//     artifact: CTFContract.artifact,
+//   });
+
+//   return {
+//     contractAddress: contract.address.toString(),
+//     deployerAddress: deployer.getAddress().toString(),
+//     deploymentSalt: salt.toString(),
+//   };
+// }
+
+
 async function writeEnvFile(deploymentInfo) {
   const envFilePath = path.join(import.meta.dirname, '../.env');
   const envConfig = Object.entries({
@@ -228,7 +277,9 @@ async function createAccountAndDeployContract() {
       0,
       0,
       0,
-      0).send({
+      0,
+      wallet1.getAddress()// Fake token address
+      ).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
@@ -272,14 +323,6 @@ async function createAccountAndDeployContract() {
     console.log("User 1 responds to challenge and loses the flag :(");
 
     await mine_block(8, contract1, sponsoredPaymentMethod)
-
-    await contract1.methods.end_game().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
-
-    await mine_block(2, contract1, sponsoredPaymentMethod)
-
-    console.log("user 1 ends the game ended")
 
     await contract1.methods.submit_score().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
