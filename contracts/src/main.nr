@@ -176,9 +176,12 @@ pub contract CTF {
     }
 
     #[public]
-    fn claim_deposit() {
+    fn claim() {
         assert(context.block_number() as u32 > storage.end.read(), "Game has not ended yet");
-        let refund = storage.deposits.at(context.msg_sender()).read();
+        let mut refund = storage.deposits.at(context.msg_sender()).read();
+        if context.msg_sender() == storage.winner.get_current_value() {
+            refund += storage.pot.read();
+        }
         Token::at(storage.token.read())
             .transfer_in_public(
                 context.this_address(),
