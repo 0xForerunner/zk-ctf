@@ -127,45 +127,34 @@ pub contract CTF {
     }
 
     #[private]
-    fn join(want_flag: bool, block_number: u32) {
-        let token = storage.token.read();
-        let deposit_size = storage.deposit_size.read();
-        Token::at(token)
-            .transfer_in_private(
+    fn join(want_flag: bool) {
+        Token::at(storage.token.read())
+            .transfer_to_public(
                 context.msg_sender(),
                 context.this_address(),
-                deposit_size,
+                storage.deposit_size.read(),
                 0
             )
             .call(&mut context);  
 
-        if(want_flag) {
-            let capture_note = CaptureNote::new(context.msg_sender(), block_number);
-            let tally_note = TallyNote::new(context.msg_sender(), 0);
-            storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
-            storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
-        } else {
-            let capture_note = CaptureNote::new(context.msg_sender(), 0);
-            let tally_note = TallyNote::new(context.msg_sender(), 0);
-            storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
-            storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
+        let mut capture_block = 0;
+        if want_flag {
+            capture_block = storage.start.read();
         }
+
+        let capture_note = CaptureNote::new(context.msg_sender(), capture_block);
+        let tally_note = TallyNote::new(context.msg_sender(), 0);
+        storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+        ));
+        storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+        ));
+
         CTF::at(context.this_address())
             ._join(context.msg_sender())
             .enqueue(&mut context);
