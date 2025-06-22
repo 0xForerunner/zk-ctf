@@ -3,21 +3,18 @@ use dep::aztec::macros::aztec;
 #[aztec]
 pub contract CTF {
     use aztec::{
-        macros::{functions::{private, public, utility, view}, storage::{storage, storage_no_init}},
+        macros::{functions::{private, public, view}, storage::{storage}},
         messages::logs::note::encode_and_encrypt_note};
 
     use dep::aztec:: macros::{
         functions::{initializer, internal }, 
     };
-    use dep::aztec::keys::getters::get_public_keys;
     use dep::aztec::prelude::{AztecAddress, Map, SharedMutable, PublicImmutable, PublicMutable, PrivateMutable};
-    use dep::aztec::protocol_types::traits::{Hash, ToField};
     use aztec::{
         macros::notes::note,
         protocol_types::{traits::{Deserialize, Serialize}},
     };
     use aztec::protocol_types::traits::Packable;
-use dep::value_note::value_note::ValueNote;
 
     use aztec::{
         macros::{events::event}
