@@ -246,8 +246,8 @@ pub contract CTF {
 
         if capture_note.capture_block != 0 {
             new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
-            let new_capture_note = CaptureNote::new(context.msg_sender(), 0);
-            let challenger_capture_note = CaptureNote {
+            new_capture_note = CaptureNote::new(context.msg_sender(), 0);
+            challenger_capture_note = CaptureNote {
                 owner: challenger,
                 capture_block: challenge_block,
                 randomness
