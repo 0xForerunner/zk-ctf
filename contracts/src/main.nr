@@ -127,19 +127,35 @@ pub contract CTF {
 
 
         let tally_note = storage.tally_note.at(context.msg_sender()).get_note().note;
-        let new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
+        let mut new_tally = tally_note.tally;
+
 
         if capture_note.capture_block != 0 {
-            // Player has the flag, so we relinquish it
-
+            new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
         }
 
-        slot.replace(capture_note).emit(encode_and_encrypt_note(
+
+        // Relinquish the flag
+        let new_capture_note = CaptureNote::new(context.msg_sender());
+        slot.replace(new_capture_note).emit(encode_and_encrypt_note(
             &mut context,
             challenger,
             context.msg_sender(),
         ));
 
+        // emit the old note to the challenger
+        let challenger_slot = storage.capture_note.at(challenger);
+        let challenger_capture_note = CaptureNote {
+            owner: challenger,
+            capture_block: challenge_block,
+        };
+        slot.replace(challenger_capture_note).emit(encode_and_encrypt_note(
+            &mut context,
+            challenger,
+            context.msg_sender(),
+        ));
+
+        // Publically ack the challenge
         CTF::at(context.this_address())
             ._respond(context.msg_sender())
             .enqueue(&mut context);
@@ -149,7 +165,7 @@ pub contract CTF {
     #[internal]
     fn _respond(sender: AztecAddress) {
         storage.challenger.at(sender).write(AztecAddress::zero());
-        storage.challenge_block. //.at(sender).write(0);
+        storage.challenge_block.at(sender).schedule_value_change(0);
     }
 
 }
