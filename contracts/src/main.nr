@@ -6,13 +6,8 @@ pub contract CTF {
         macros::{functions::{private, public, view}, storage::{storage}},
         messages::logs::note::encode_and_encrypt_note};
 
-    use dep::aztec::capsules::CapsuleArray;
-
-    // Define a base slot for your array
-    use dep::aztec::utils::comparison::{compare, Comparator};
-
     use dep::aztec:: macros::{
-        functions::{initializer, internal }, 
+        functions::{internal}, 
     };
     use dep::aztec::prelude::{AztecAddress, Map, SharedMutable, PublicImmutable, PublicMutable, PrivateMutable};
     use aztec::{
@@ -24,7 +19,6 @@ pub contract CTF {
     use aztec::{
         macros::{events::event}
     };
-    use std::convert::AsPrimitive;
 
     use aztec::oracle::random::{random};   // returns a Field
 
