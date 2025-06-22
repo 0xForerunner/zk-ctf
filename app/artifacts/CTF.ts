@@ -127,7 +127,7 @@ export class CTFContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'token' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'> {
+  public static get storage(): ContractStorageLayout<'start' | 'end' | 'claim' | 'spend_limit' | 'challenge_fee' | 'deposit_size' | 'token' | 'pot' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'winner' | 'winner_score' | 'capture_note' | 'tally_note'> {
       return {
         start: {
       slot: new Fr(1n),
@@ -135,13 +135,13 @@ export class CTFContract extends ContractBase {
 end: {
       slot: new Fr(3n),
     },
-join_fee: {
+claim: {
       slot: new Fr(5n),
     },
-challenge_fee: {
+spend_limit: {
       slot: new Fr(7n),
     },
-slash_fee: {
+challenge_fee: {
       slot: new Fr(9n),
     },
 deposit_size: {
@@ -150,34 +150,34 @@ deposit_size: {
 token: {
       slot: new Fr(13n),
     },
-deposits: {
+pot: {
       slot: new Fr(15n),
     },
-challenger: {
+deposits: {
       slot: new Fr(16n),
     },
-challenge_block: {
+challenger: {
       slot: new Fr(17n),
     },
-final_score: {
+challenge_block: {
       slot: new Fr(18n),
     },
-winner: {
+final_score: {
       slot: new Fr(19n),
     },
-winner_score: {
-      slot: new Fr(23n),
+winner: {
+      slot: new Fr(20n),
     },
-first_capture: {
-      slot: new Fr(27n),
+winner_score: {
+      slot: new Fr(24n),
     },
 capture_note: {
-      slot: new Fr(31n),
+      slot: new Fr(28n),
     },
 tally_note: {
-      slot: new Fr(32n),
+      slot: new Fr(29n),
     }
-      } as ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'token' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'>;
+      } as ContractStorageLayout<'start' | 'end' | 'claim' | 'spend_limit' | 'challenge_fee' | 'deposit_size' | 'token' | 'pot' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'winner' | 'winner_score' | 'capture_note' | 'tally_note'>;
     }
     
 
@@ -202,11 +202,14 @@ TallyNote: {
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
     
+    /** _slash(address: struct) */
+    _slash: ((address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** challenge(address: struct) */
     challenge: ((address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** claim_deposit() */
-    claim_deposit: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** claim() */
+    claim: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** end_game() */
     end_game: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -214,8 +217,8 @@ TallyNote: {
     /** has_flag() */
     has_flag: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** initialize(start: integer, end: integer, join_fee: field, challenge_fee: field, slash_fee: field, deposit_size: integer, token: struct) */
-    initialize: ((start: (bigint | number), end: (bigint | number), join_fee: FieldLike, challenge_fee: FieldLike, slash_fee: FieldLike, deposit_size: (bigint | number), token: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** initialize(start: integer, end: integer, claim: integer, spend_limit: integer, challenge_fee: integer, deposit_size: integer, token: struct) */
+    initialize: ((start: (bigint | number), end: (bigint | number), claim: (bigint | number), spend_limit: (bigint | number), challenge_fee: (bigint | number), deposit_size: (bigint | number), token: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** join(want_flag: boolean, block_number: integer) */
     join: ((want_flag: boolean, block_number: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

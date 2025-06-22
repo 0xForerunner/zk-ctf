@@ -71,13 +71,17 @@ async function getSponsoredPFCContract() {
 
 async function createAccount(pxe: PXE, index: number) {
 
-  const {salt, secretKey, signingKey} = WALLETS[index]
+  // const {salt, secretKey, signingKey} = WALLETS[index]
 
-  let saltFormat = Fr.fromHexString(salt)
-  let secretKeyFormat = Fr.fromHexString(secretKey)
-  let signingKeyFormat = new Buffer(signingKey, 'hex')
-  
-  const ecdsaAccount = await getEcdsaRAccount(pxe, secretKeyFormat, signingKeyFormat, saltFormat);
+  // let saltFormat = Fr.fromHexString(salt)
+  // let secretKeyFormat = Fr.fromHexString(secretKey)
+  // let signingKeyFormat = new Buffer(signingKey, 'hex')
+  // const ecdsaAccount = await getEcdsaRAccount(pxe, secretKeyFormat, signingKeyFormat, saltFormat);
+
+  const salt = Fr.random();
+  const secretKey = Fr.random();  
+  const signingKey = Buffer.alloc(32, Fr.random().toBuffer());
+  const ecdsaAccount = await getEcdsaRAccount(pxe, secretKey, signingKey, salt);
 
   const deployMethod = await ecdsaAccount.getDeployMethod();
   const sponsoredPFCContract = await getSponsoredPFCContract();
@@ -154,8 +158,8 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
 
 async function deployTokenContract(pxe: PXE, deployer: Wallet) {
 
+  console.log("DEPLOYER WALLTE ADDRESS IS ", deployer.getAddress());
   const deployMethod = TokenContract.deploy(deployer, deployer.getAddress(), 'Token', 'TKN', 18);
-
   const salt = Fr.random();
   const contract = await getContractInstanceFromDeployParams(
     TokenContract.artifact,
@@ -164,7 +168,7 @@ async function deployTokenContract(pxe: PXE, deployer: Wallet) {
       constructorArtifact: getDefaultInitializer(
         TokenContract.artifact
       ),
-      constructorArgs: [deployer.getAddress().toField()],
+      constructorArgs: [deployer.getAddress().toField(), 'Token', 'TKN', 18],
       deployer: deployer.getAddress(),
       salt,
     }
@@ -183,7 +187,7 @@ async function deployTokenContract(pxe: PXE, deployer: Wallet) {
   await provenInteraction.send().wait({ timeout: 120 });
   await pxe.registerContract({
     instance: contract,
-    artifact: CTFContract.artifact,
+    artifact: TokenContract.artifact,
   });
 
   return {

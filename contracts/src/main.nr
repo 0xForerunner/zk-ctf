@@ -174,7 +174,7 @@ pub contract CTF {
     #[public]
     #[internal]
     fn _join(sender: AztecAddress) {
-        assert(context.block_number() as u32 < storage.start.read(), "Game has already started");
+        // assert(context.block_number() as u32 < storage.start.read(), "Game has already started");
         storage.deposits.at(sender).write(storage.deposit_size.read());
         // Token::at(token)
             // .transfer_to_public(
