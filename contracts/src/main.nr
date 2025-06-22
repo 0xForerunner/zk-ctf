@@ -102,6 +102,14 @@ pub contract CTF {
         block: Field
     }
 
+    #[event]
+    #[derive(Eq, Serialize, Deserialize)]
+    struct TallyEvent {
+        address: AztecAddress,
+        tally: u32,
+    }
+
+
     // #[initializer]
     #[public]
     fn initialize(

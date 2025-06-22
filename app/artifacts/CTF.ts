@@ -121,7 +121,7 @@ export class CTFContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'num_players' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'> {
+  public static get storage(): ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'> {
       return {
         start: {
       slot: new Fr(1n),
@@ -144,40 +144,37 @@ deposit_size: {
 is_init: {
       slot: new Fr(13n),
     },
-num_players: {
+deposits: {
       slot: new Fr(14n),
     },
-deposits: {
+challenger: {
       slot: new Fr(15n),
     },
-challenger: {
+challenge_block: {
       slot: new Fr(16n),
     },
-challenge_block: {
+final_score: {
       slot: new Fr(17n),
     },
-final_score: {
+game_over: {
       slot: new Fr(18n),
     },
-game_over: {
-      slot: new Fr(19n),
-    },
 winner: {
-      slot: new Fr(23n),
+      slot: new Fr(22n),
     },
 winner_score: {
-      slot: new Fr(27n),
+      slot: new Fr(26n),
     },
 first_capture: {
-      slot: new Fr(31n),
+      slot: new Fr(30n),
     },
 capture_note: {
-      slot: new Fr(35n),
+      slot: new Fr(34n),
     },
 tally_note: {
-      slot: new Fr(36n),
+      slot: new Fr(35n),
     }
-      } as ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'num_players' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'>;
+      } as ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'>;
     }
     
 

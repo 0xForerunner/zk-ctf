@@ -21,6 +21,7 @@ import { SPONSORED_FPC_SALT } from '@aztec/constants';
 import { CTFContract } from '../app/artifacts/CTF.ts';
 import { ADDRGETNETWORKPARAMS } from 'dns';
 import { CheatCodes } from '@aztec/aztec.js/testing';
+import { WALLETS } from './generate_wallets.ts';
 
 const AZTEC_NODE_URL = process.env.AZTEC_NODE_URL || 'http://localhost:8080';
 const PROVER_ENABLED = process.env.PROVER_ENABLED === 'false' ? false : true;
@@ -67,11 +68,19 @@ async function getSponsoredPFCContract() {
   return instance;
 }
 
-async function createAccount(pxe: PXE) {
-  const salt = Fr.random();
-  const secretKey = Fr.random();
-  const signingKey = Buffer.alloc(32, Fr.random().toBuffer());
-  const ecdsaAccount = await getEcdsaRAccount(pxe, secretKey, signingKey, salt);
+async function createAccount(pxe: PXE, index: number) {
+
+  const {salt, secretKey, signingKey} = WALLETS[index]
+
+  let saltFormat = Fr.fromHexString(salt)
+  let secretKeyFormat = Fr.fromHexString(secretKey)
+  let signingKeyFormat = new Buffer(signingKey, 'hex')
+  
+
+  // const salt = Fr.random();
+  // const secretKey = Fr.random();
+  // const signingKey = Buffer.alloc(32, Fr.random().toBuffer());
+  const ecdsaAccount = await getEcdsaRAccount(pxe, secretKeyFormat, signingKeyFormat, saltFormat);
 
   const deployMethod = await ecdsaAccount.getDeployMethod();
   const sponsoredPFCContract = await getSponsoredPFCContract();
@@ -180,30 +189,17 @@ async function createAccountAndDeployContract() {
   });
 
   // Create a new account
-  const { wallet: wallet1, /* signingKey */ } = await createAccount(pxe);
-  const { wallet: wallet2, /* signingKey */ } = await createAccount(pxe);
-  const { wallet: wallet3, /* signingKey */ } = await createAccount(pxe);
+  const { wallet: wallet1, /* signingKey */ } = await createAccount(pxe, 0);
+  const { wallet: wallet2, /* signingKey */ } = await createAccount(pxe, 1);
+  const { wallet: wallet3, /* signingKey */ } = await createAccount(pxe, 2);
 
-  // // Save the wallet info
-  // const walletInfo = {
-  //   address: wallet.getAddress().toString(),
-  //   salt: wallet.salt.toString(),
-  //   secretKey: wallet.getSecretKey().toString(),
-  //   signingKey: Buffer.from(signingKey).toString('hex'),
-  // };
-  // fs.writeFileSync(
-  //   path.join(import.meta.dirname, '../wallet-info.json'),
-  //   JSON.stringify(walletInfo, null, 2)
-  // );
-  // console.log('\n\n\nWallet info saved to wallet-info.json\n\n\n');
-
-  // Deploy the contract
   const deploymentInfo = await deployContract(pxe, wallet1);
 
   await writeEnvFile(deploymentInfo);
   
   // TODO: CAN BE REPLACED
   const contractAddress = deploymentInfo.contractAddress
+  // const contractAddress = '0x0ba2df805eeef88c7c78fc99eae684058170a8560df42184652f2ff00b9ff847'
 
   const blockNumber = await pxe.getBlockNumber()
 
@@ -212,10 +208,10 @@ async function createAccountAndDeployContract() {
       wallet1
     );
 
-    const contract2 = await CTFContract.at(
-      AztecAddress.fromString(contractAddress),
-      wallet2
-    );
+    // const contract2 = await CTFContract.at(
+    //   AztecAddress.fromString(contractAddress),
+    //   wallet2
+    // );
 
     const contract3 = await CTFContract.at(
       AztecAddress.fromString(contractAddress),
@@ -225,8 +221,6 @@ async function createAccountAndDeployContract() {
       // Prepare the sponsored fee payment method
     const sponsoredPFCContract = await getSponsoredPFCContract();
     const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
-
-    console.log("ATTEMPTING TO INIT THE GAME")
       
     await contract1.methods.initialize(
       blockNumber,
@@ -240,9 +234,6 @@ async function createAccountAndDeployContract() {
 
     console.log("INIT THE GAME")
 
-
-    // All users join
-
     const blockNumber2 = await pxe.getBlockNumber()
 
     contract1.methods.join(true, blockNumber2).send({
@@ -251,7 +242,6 @@ async function createAccountAndDeployContract() {
 
 
     console.log("User 1 joined the game holding the flag")
-
 
     // await contract2.methods.join(false, 0).send({
     //   fee: { paymentMethod: sponsoredPaymentMethod }
@@ -265,12 +255,6 @@ async function createAccountAndDeployContract() {
 
     console.log("User 3 joined the game")
 
-    // const user1HasFlag = await contract1.methods.has_flag().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-    // console.log("DOES USER 1 have flag???" , user1HasFlag);
-
     // User 3 challenges user 1 for the flag
     await contract3.methods.challenge(wallet1.getAddress()).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
@@ -278,26 +262,45 @@ async function createAccountAndDeployContract() {
 
     console.log("User 3 challenges user 1");
 
-    // Force two blocks
-    await contract1.methods.nothing().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    await mine_block(2, contract1, sponsoredPaymentMethod)
 
-    console.log("Block passes");
-
-
-    await contract1.methods.nothing().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
-
-    console.log("Block passes");
-
-    // User 1 responds to challenge and User 3 gets the flag
+    // // User 1 responds to challenge and User 3 gets the flag
     await contract1.methods.respond(wallet3.getAddress()).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
     console.log("User 1 responds to challenge and loses the flag :(");
+
+    await mine_block(8, contract1, sponsoredPaymentMethod)
+
+    await contract1.methods.end_game().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    await mine_block(2, contract1, sponsoredPaymentMethod)
+
+    console.log("user 1 ends the game ended")
+
+    await contract1.methods.submit_score().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    console.log("user 1 submits the score")
+
+    await mine_block(2, contract1, sponsoredPaymentMethod)
+
+    await contract3.methods.submit_score().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    console.log("user 3 submits the score")
+
+    await mine_block(2, contract1, sponsoredPaymentMethod)
+
+    const winner = await contract1.methods.winner().simulate({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    })
+    console.log("winner is....hopefully user 3", winner)
 
     // const user1HasFlag2 = await contract1.methods.has_flag().send({
     //   fee: { paymentMethod: sponsoredPaymentMethod }
@@ -358,8 +361,18 @@ async function createAccountAndDeployContract() {
     // console.log(tx)
 
 
-  // Clean up the PXE store
+  // // Clean up the PXE store
   fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });
+}
+
+async function mine_block(count: number, contract: any, sponsoredPaymentMethod: any) {
+  for(let i = 0; i < count; i++) {
+    await contract.methods.nothing().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    console.log("Mined block");
+  }
 }
 
 createAccountAndDeployContract().catch((error) => {
