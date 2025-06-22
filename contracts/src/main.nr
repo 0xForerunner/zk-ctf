@@ -83,20 +83,6 @@ use dep::value_note::value_note::ValueNote;
 
     #[private]
     fn join(game_id: AztecAddress) {
-
-        let amount: Field = storage.deposit_size.read();            // immutable
-        // let deposit_note  = ValueNote {                             // struct fields
-
-        // Emit encrypted log so the contract (recipient) can decrypt & spend later.
-        // The *sender* is the player; the *recipient* is the contract itself.
-        encode_and_encrypt_note(
-            &mut context,
-            context.this_address(),
-            context.msg_sender(),
-        )
-        .emit_note(deposit_note);  
-
-    
         let capture_note  = CaptureNote::new(context.msg_sender());
         let tally_note  = TallyNote::new(context.msg_sender());
         storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
