@@ -137,10 +137,11 @@ pub contract CTF {
             )
             .call(&mut context);  
 
-        let mut capture_block = 0;
-        if want_flag {
-            capture_block = storage.start.read();
-        }
+        let mut capture_block = if want_flag {
+            storage.start.read()
+        } else {
+            0
+        };
 
         let capture_note = CaptureNote::new(context.msg_sender(), capture_block);
         let tally_note = TallyNote::new(context.msg_sender(), 0);
