@@ -25,15 +25,6 @@ pub contract CTF {
 
     use aztec::oracle::random::{random, rand_oracle};   // returns a Field
 
-/// Returns a random u32 in the range [0, n)
-#[public]
-fn rand_u32(n: u32) -> u32 {
-    // let r: Field = random();
-    let r_field: Field = rand_oracle();
-    let r: u32 = r_field as u32;
-    (r % n).to_u32() 
-}
-
     #[storage]
     struct Storage<Context> {
         start: PublicImmutable<u32, Context>,
@@ -294,4 +285,12 @@ fn rand_u32(n: u32) -> u32 {
         storage.challenge_block.at(sender).schedule_value_change(0);
     }
 
+    /// Returns a random u32 in the range [0, n)
+    #[public]
+    fn rand_u32(n: u32) -> u32 {
+        // let r: Field = random();
+        let r_field: Field = rand_oracle();
+        let r: u32 = r_field as u32;
+        r % n
+    }
 }
