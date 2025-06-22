@@ -200,20 +200,25 @@ async function createAccountAndDeployContract() {
   // Deploy the contract
   const deploymentInfo = await deployContract(pxe, wallet1);
 
+  await writeEnvFile(deploymentInfo);
+  
+  // TODO: CAN BE REPLACED
+  const contractAddress = deploymentInfo.contractAddress
+
   const blockNumber = await pxe.getBlockNumber()
 
     const contract1 = await CTFContract.at(
-      AztecAddress.fromString(deploymentInfo.contractAddress),
+      AztecAddress.fromString(contractAddress),
       wallet1
     );
 
     const contract2 = await CTFContract.at(
-      AztecAddress.fromString(deploymentInfo.contractAddress),
+      AztecAddress.fromString(contractAddress),
       wallet2
     );
 
     const contract3 = await CTFContract.at(
-      AztecAddress.fromString(deploymentInfo.contractAddress),
+      AztecAddress.fromString(contractAddress),
       wallet3
     );
 
@@ -252,7 +257,7 @@ async function createAccountAndDeployContract() {
     //   fee: { paymentMethod: sponsoredPaymentMethod }
     // }).wait()
 
-    console.log("User 2 joined the game")
+    // console.log("User 2 joined the game")
 
     await contract3.methods.join(false, 0).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
@@ -260,18 +265,18 @@ async function createAccountAndDeployContract() {
 
     console.log("User 3 joined the game")
 
-    const user1HasFlag = await contract1.methods.has_flag().send({
+    // const user1HasFlag = await contract1.methods.has_flag().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
+
+    // console.log("DOES USER 1 have flag???" , user1HasFlag);
+
+    // User 3 challenges user 1 for the flag
+    await contract3.methods.challenge(wallet1.getAddress()).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
-    console.log("DOES USER 1 have flag???" , user1HasFlag);
-
-    // User 2 challenges user 1 for the flag
-    await contract2.methods.challenge(wallet1.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
-
-    console.log("User 2 challenges user 1");
+    console.log("User 3 challenges user 1");
 
     // Force two blocks
     await contract1.methods.nothing().send({
@@ -287,19 +292,18 @@ async function createAccountAndDeployContract() {
 
     console.log("Block passes");
 
-    // User 1 responds to challenge and User 2 gets the flag
-    await contract1.methods.respond(wallet2.getAddress()).send({
+    // User 1 responds to challenge and User 3 gets the flag
+    await contract1.methods.respond(wallet3.getAddress()).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
     console.log("User 1 responds to challenge and loses the flag :(");
 
+    // const user1HasFlag2 = await contract1.methods.has_flag().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait()
 
-    const user1HasFlag2 = await contract1.methods.has_flag().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait()
-
-    console.log("DOES USER 1 have flag???" , user1HasFlag2);
+    // console.log("DOES USER 1 have flag???" , user1HasFlag2);
 
     // // User 3 challenges user 1
     // await contract3.methods.challenge(wallet1.getAddress()).send({
@@ -353,10 +357,6 @@ async function createAccountAndDeployContract() {
 
     // console.log(tx)
 
-  // Save the deployment info to app/public
-  if (WRITE_ENV_FILE) {
-    await writeEnvFile(deploymentInfo);
-  }
 
   // Clean up the PXE store
   fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });
