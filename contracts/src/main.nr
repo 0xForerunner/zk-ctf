@@ -131,7 +131,7 @@ pub contract CTF {
         let token = storage.token.read();
         let deposit_size = storage.deposit_size.read();
         Token::at(token)
-            .transfer_to_public(
+            .transfer_in_private(
                 context.msg_sender(),
                 context.this_address(),
                 deposit_size,
