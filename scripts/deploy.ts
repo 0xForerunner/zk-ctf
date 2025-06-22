@@ -216,11 +216,85 @@ async function createAccountAndDeployContract() {
     const sponsoredPFCContract = await getSponsoredPFCContract();
     const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
 
-    // Send the transaction with the fee payment method
-    const tx = await contract1.methods.join().send({
+    // All users join
+    await contract1.methods.join().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
-    console.log(tx)
+
+    await contract2.methods.join().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    await contract3.methods.join().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // User 1 takes the flag
+    await contract1.methods.capture().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // User 2 challenges user 1 for the flag
+    await contract2.methods.challenge(wallet1.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // User 1 responds to challenge and User 2 gets the flag
+    await contract1.methods.respond(wallet2.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // User 3 challenges user 1
+    await contract3.methods.challenge(wallet1.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // User 1 responds to challenge and nothing happens
+    await contract1.methods.respond(wallet3.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+  
+    // User 3 challenges user 2
+    await contract3.methods.challenge(wallet2.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // user 2 responds, User 3 gets the flag
+    await contract2.methods.respond(wallet3.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // TODO: Ensure we are over the end block time
+    // End the game
+    // While not revert, etc
+    
+    await contract1.methods.end_game().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+ 
+    // All users submit their score
+    await contract1.methods.submit_score().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+
+    await contract2.methods.submit_score().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+
+    await contract3.methods.submit_score().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // Assert the winner is player 3
+    await contract3.methods.winner().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // console.log(tx)
 
   // Save the deployment info to app/public
   if (WRITE_ENV_FILE) {

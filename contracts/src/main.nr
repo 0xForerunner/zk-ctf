@@ -6,6 +6,8 @@ pub contract CTF {
         macros::{functions::{private, public, view}, storage::{storage}},
         messages::logs::note::encode_and_encrypt_note};
 
+    use dep::aztec::utils::comparison::{compare, Comparator};
+
     use dep::aztec:: macros::{
         functions::{initializer, internal }, 
     };
@@ -19,11 +21,12 @@ pub contract CTF {
     use aztec::{
         macros::{events::event}
     };
+    use std::convert::AsPrimitive;
 
     #[storage]
     struct Storage<Context> {
         start: PublicImmutable<u32, Context>,
-        end: PublicImmutable<u32, Context>,
+        end: PublicImmutable<Field, Context>,
         join_fee: PublicImmutable<Field, Context>,
         challenge_fee: PublicImmutable<Field, Context>,
         slash_fee: PublicImmutable<Field, Context>,
@@ -31,6 +34,12 @@ pub contract CTF {
         deposits: Map<AztecAddress, PublicMutable<Field, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
+        
+        final_score: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
+        game_over: SharedMutable<bool, 1, Context>,
+        winner: SharedMutable<AztecAddress, 1, Context>,
+        winner_score: SharedMutable<u32, 1, Context>,
+        
         capture_note: Map<AztecAddress, PrivateMutable<CaptureNote, Context>, Context>,
         tally_note: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
     }
@@ -71,6 +80,7 @@ pub contract CTF {
 
     // Define an event structure
     #[event]
+    #[derive(Eq, Serialize, Deserialize)]
     struct ChallengeEvent {
         challenger: AztecAddress,
         defender: AztecAddress,
@@ -118,6 +128,46 @@ pub contract CTF {
         note.note.capture_block != 0
     }
 
+    #[public]
+    fn end_game() {
+        let current_block = context.block_number();
+        // You can now use current_block for your logic
+        if (compare(current_block, Comparator.GT, storage.end.read())) {
+            storage.game_over.schedule_value_change(true);
+        }
+    }
+
+    #[public]
+    fn winner() -> AztecAddress {
+        let mut winner = AztecAddress::zero();
+        let current_block = context.block_number();
+        if (compare(current_block, Comparator.GT, storage.end.read())) {
+            winner = storage.winner.get_current_value();
+        }
+
+        winner 
+    }
+
+    #[private]
+    fn submit_score() {
+        let score: TallyNote = storage.tally_note.at(context.msg_sender()).get_note().note;
+        CTF::at(context.this_address())
+            ._submit_score(context.msg_sender(), score.tally)
+            .enqueue(&mut context);
+    }
+
+    #[public]
+    #[internal]
+    fn _submit_score(sender: AztecAddress, score: u32) {
+        if(storage.game_over.get_current_value()) {
+            storage.final_score.at(sender).schedule_value_change(score);
+            if(storage.winner_score.get_current_value() < score) {
+                storage.winner_score.schedule_value_change(score);
+                storage.winner.schedule_value_change(sender);
+            }
+        }
+    }
+
     #[view]
     #[private]
     fn tally() -> u32 {
@@ -134,10 +184,8 @@ pub contract CTF {
 
         let challenger = context.msg_sender();
 
-        // emit_event_in_public_log(
-        //     ChallengeEvent { challenger: challenger, defender: address, block: context.block_number() },
-        //     &mut context,
-        // );
+        context.emit_public_log(
+            ChallengeEvent { challenger: challenger, defender: address, block: context.block_number() }        );
 
     }
 

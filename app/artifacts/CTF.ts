@@ -38,6 +38,12 @@ import CTFContractArtifactJson from './private_voting-CTF.json' with { type: 'js
 export const CTFContractArtifact = loadContractArtifact(CTFContractArtifactJson as NoirCompiledContract);
 
 
+      export type ChallengeEvent = {
+        challenger: AztecAddressLike
+defender: AztecAddressLike
+block: FieldLike
+      }
+    
 
 /**
  * Type-safe interface for contract CTF;
@@ -115,42 +121,156 @@ export class CTFContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'current_holder'> {
+  public static get storage(): ContractStorageLayout<'admin' | 'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'capture_note' | 'tally_note'> {
       return {
-        current_holder: {
+        admin: {
       slot: new Fr(1n),
+    },
+start: {
+      slot: new Fr(3n),
+    },
+end: {
+      slot: new Fr(5n),
+    },
+join_fee: {
+      slot: new Fr(7n),
+    },
+challenge_fee: {
+      slot: new Fr(9n),
+    },
+slash_fee: {
+      slot: new Fr(11n),
+    },
+deposit_size: {
+      slot: new Fr(13n),
+    },
+challenger: {
+      slot: new Fr(15n),
+    },
+challenge_block: {
+      slot: new Fr(16n),
+    },
+final_score: {
+      slot: new Fr(17n),
+    },
+game_over: {
+      slot: new Fr(18n),
+    },
+winner: {
+      slot: new Fr(22n),
+    },
+winner_score: {
+      slot: new Fr(26n),
+    },
+capture_note: {
+      slot: new Fr(30n),
+    },
+tally_note: {
+      slot: new Fr(31n),
     }
-      } as ContractStorageLayout<'current_holder'>;
+      } as ContractStorageLayout<'admin' | 'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'capture_note' | 'tally_note'>;
     }
     
 
-  public static get notes(): ContractNotes<'FlagNote' | 'ValueNote'> {
+  public static get notes(): ContractNotes<'ValueNote' | 'TallyNote' | 'CaptureNote'> {
     return {
-      FlagNote: {
-          id: new NoteSelector(1),
-        },
-ValueNote: {
+      ValueNote: {
           id: new NoteSelector(0),
+        },
+TallyNote: {
+          id: new NoteSelector(2),
+        },
+CaptureNote: {
+          id: new NoteSelector(1),
         }
-    } as ContractNotes<'FlagNote' | 'ValueNote'>;
+    } as ContractNotes<'ValueNote' | 'TallyNote' | 'CaptureNote'>;
   }
   
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
     
-    /** claim(potential_holder: struct) */
-    claim: ((potential_holder: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** challenge(address: struct) */
+    challenge: ((address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor() */
-    constructor: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** end_game() */
+    end_game: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** has_flag() */
+    has_flag: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** join() */
+    join: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** respond(challenger: struct) */
+    respond: ((challenger: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** submit_score() */
+    submit_score: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** sync_private_state() */
     sync_private_state: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** tally() */
+    tally: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** winner() */
+    winner: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
+  
+    public static get events(): { ChallengeEvent: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
+    return {
+      ChallengeEvent: {
+        abiType: {
+    "kind": "struct",
+    "fields": [
+        {
+            "name": "challenger",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
+                    }
+                ],
+                "path": "aztec::protocol_types::address::aztec_address::AztecAddress"
+            }
+        },
+        {
+            "name": "defender",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
+                    }
+                ],
+                "path": "aztec::protocol_types::address::aztec_address::AztecAddress"
+            }
+        },
+        {
+            "name": "block",
+            "type": {
+                "kind": "field"
+            }
+        }
+    ],
+    "path": "CTF::ChallengeEvent"
+},
+        eventSelector: EventSelector.fromString("0xe1e6d24e"),
+        fieldNames: ["challenger","defender","block"],
+      }
+    };
+  }
   
 }
