@@ -1,5 +1,7 @@
 # Dude, Where's My Flag?
 
+![Flag](assets/flag.png)
+
 A fully on chain, incomplete information based version of capture the flag!
 
 ### How to play
@@ -33,8 +35,8 @@ This happens regardless of wether they had the flag or not, since optionally nul
 - The challenger get a new note for their flag holding status (also issued regardless of wether they actually got it or not)
 - The challenge is publically acked so the responder can no longer be slashed
 
-All users can see when challenges are submited, and responded to; However, only the challenger and responder are aware if the challenge was successful.
-This creates a game environment with incomplete knowledge, anbd should encourage some interesting strategies to show up!
+All users can see when challenges are submited and responded to; However, only the challenger and responder are aware if the challenge was successful or not.
+This creates a game environment with incomplete knowledge, and should encourage some interesting strategies to show up!
 
 ### Setup
 
