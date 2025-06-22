@@ -224,6 +224,23 @@ pub contract CTF {
         winner 
     }
 
+    #[public]
+    fn winner_score() -> u32 {
+        let mut winner_score = 0;
+        let current_block = context.block_number() as u32;
+        if current_block > storage.end.read() {
+            winner_score = storage.winner_score.get_current_value();
+        }
+
+        winner_score 
+    }
+
+    #[public]
+    fn user_score(address: AztecAddress) -> u32 {
+        let score = storage.final_score.at(address).get_current_value();
+        score
+    }
+
     #[private]
     fn submit_score() {
         let capture_note = storage.capture_note.at(context.msg_sender()).get_note();

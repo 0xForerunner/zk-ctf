@@ -42,7 +42,7 @@ async function setupPXE() {
 
   const config = getPXEServiceConfig();
   config.dataDirectory = 'pxe';
-  config.proverEnabled = PROVER_ENABLED;
+  config.proverEnabled = false;
   const configWithContracts = {
     ...config,
   };
@@ -341,64 +341,22 @@ async function createAccountAndDeployContract() {
     })
     console.log("winner is....hopefully user 3", winner)
 
-    // const user1HasFlag2 = await contract1.methods.has_flag().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait()
+    const winnerScore = await contract1.methods.winner_score().simulate({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    })
 
-    // console.log("DOES USER 1 have flag???" , user1HasFlag2);
+    console.log("winner score", winnerScore)
 
-    // // User 3 challenges user 1
-    // await contract3.methods.challenge(wallet1.getAddress()).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
+    const player1Score = await contract1.methods.user_score(wallet1.getAddress()).simulate({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    })
 
-    // // User 1 responds to challenge and nothing happens
-    // await contract1.methods.respond(wallet3.getAddress()).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
+    const player3Score = await contract1.methods.user_score(wallet3.getAddress()).simulate({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    })
 
-  
-    // // User 3 challenges user 2
-    // await contract3.methods.challenge(wallet2.getAddress()).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-    // // user 2 responds, User 3 gets the flag
-    // await contract2.methods.respond(wallet3.getAddress()).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-    // // TODO: Ensure we are over the end block time
-    // // End the game
-    // // While not revert, etc
-    
-    // await contract1.methods.end_game().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
- 
-    // // All users submit their score
-    // await contract1.methods.submit_score().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-
-    // await contract2.methods.submit_score().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-
-    // await contract3.methods.submit_score().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-    // // Assert the winner is player 3
-    // await contract3.methods.winner().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
-
-    // console.log(tx)
-
+    console.log("player 1 score", player1Score)
+    console.log("player 3 score", player3Score)
 
   // // Clean up the PXE store
   fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });

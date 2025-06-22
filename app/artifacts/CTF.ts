@@ -244,8 +244,14 @@ TallyNote: {
     /** tally() */
     tally: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** user_score(address: struct) */
+    user_score: ((address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** winner() */
     winner: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** winner_score() */
+    winner_score: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   
