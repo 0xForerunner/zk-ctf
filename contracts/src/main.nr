@@ -32,7 +32,7 @@ pub contract CTF {
         deposit_size: PublicImmutable<u128, Context>,
         token: PublicImmutable<AztecAddress, Context>,
 
-        deposits: Map<AztecAddress, PublicMutable<Field, Context>, Context>,
+        deposits: Map<AztecAddress, PublicMutable<u128, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
         
@@ -109,7 +109,6 @@ pub contract CTF {
     }
 
 
-    // #[initializer]
     #[public]
     fn initialize(
         start: u32, 
@@ -126,10 +125,22 @@ pub contract CTF {
         storage.challenge_fee.initialize(challenge_fee);
         storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
+        storage.token.initialize(token);
     }
 
     #[private]
     fn join(want_flag: bool, block_number: u32) {
+        let token = storage.token.read();
+        let deposit_size = storage.deposit_size.read();
+        // Token::at(token)
+            // .transfer_in_private(
+                // context.msg_sender(),
+                // context.this_address(),
+                // deposit_size,
+                // 0
+            // )
+            // .call(&mut context);  
+
         if(want_flag) {
             let capture_note = CaptureNote::new(context.msg_sender(), block_number);
             let tally_note = TallyNote::new(context.msg_sender(), 0);
@@ -166,12 +177,21 @@ pub contract CTF {
     #[internal]
     fn _join(sender: AztecAddress) {
         assert(context.block_number() as u32 < storage.start.read(), "Game has already started");
+        storage.deposits.at(sender).write(storage.deposit_size.read());
+    }
 
-        let token = storage.token.read();
-        let deposit_size = storage.deposit_size.read();
-        // Token::at(token)
-        //     .transfer_in_public(sender, context.this_address(), deposit_size, 0)
-        //    .call(&mut context);
+    #[public]
+    fn claim_deposit() {
+        assert(context.block_number() as u32 > storage.end.read(), "Game has not ended yet");
+        let refund = storage.deposits.at(context.msg_sender()).read();
+        Token::at(storage.token.read())
+            .transfer_in_public(
+                context.this_address(),
+                context.msg_sender(),
+                refund,
+                0
+            )
+            .call(&mut context);
     }
 
     #[private]
@@ -197,9 +217,13 @@ pub contract CTF {
 
     #[private]
     fn submit_score() {
-        let score: TallyNote = storage.tally_note.at(context.msg_sender()).get_note().note;
+        let capture_note = storage.capture_note.at(context.msg_sender()).get_note();
+        let mut score  = storage.tally_note.at(context.msg_sender()).get_note().note.tally;
+        if capture_note.note.capture_block != 0 {
+            score += storage.end.read() - capture_note.note.capture_block;
+        }
         CTF::at(context.this_address())
-            ._submit_score(context.msg_sender(), score.tally)
+            ._submit_score(context.msg_sender(), score)
             .enqueue(&mut context);
     }
 
