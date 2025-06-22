@@ -30,14 +30,22 @@ export default function Home() {
 
   // Fetch all logs once
   useEffect(() => {
-    const fetchAllLogs = async () => {
+    const fetchLogs = async () => {
       try {
         const response = await fetch('/api/logs');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data: LogEntry[] = await response.json();
-        setAllLogs(data);
+        
+        // Only update if we have new logs
+        if (data.length !== allLogs.length) {
+          setAllLogs(data);
+          // Update displayed logs to show all new logs immediately
+          setDisplayedLogs(data);
+          setCurrentIndex(data.length);
+        }
+        
         setError(null);
       } catch (err) {
         console.error('Failed to fetch logs:', err);
@@ -47,20 +55,14 @@ export default function Home() {
       }
     };
 
-    fetchAllLogs();
-  }, []);
-
-  // Display one new log every second
-  useEffect(() => {
-    if (allLogs.length === 0 || currentIndex >= allLogs.length) return;
-
-    const timer = setTimeout(() => {
-      setDisplayedLogs(prev => [...prev, allLogs[currentIndex]]);
-      setCurrentIndex(prev => prev + 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [allLogs, currentIndex]);
+    // Fetch immediately
+    fetchLogs();
+    
+    // Then fetch every second
+    const interval = setInterval(fetchLogs, 1000);
+    
+    return () => clearInterval(interval);
+  }, [allLogs.length]); // Add dependency to avoid infinite loops
 
   // Add auto-scroll effect
   useEffect(() => {
@@ -102,16 +104,7 @@ export default function Home() {
     <div
       className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
     >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start max-w-6xl w-full">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        
+      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start max-w-6xl w-full">        
         <div className="w-full">
           <h2 className="text-xl font-semibold mb-4 font-[family-name:var(--font-geist-mono)]">
             CTF Game Logs

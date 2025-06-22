@@ -31,6 +31,34 @@ const WRITE_ENV_FILE = process.env.WRITE_ENV_FILE === 'false' ? false : true;
 const __dirname = path.dirname(__filename);
 const PXE_STORE_DIR = path.join(__dirname, '.store');
 
+let logId = 1;
+const LOG_FILE_PATH = path.join('log.json');
+
+function writeLog(action: string) {
+  let logs = [];
+
+  // Try to read existing logs
+  try {
+    if (fs.existsSync(LOG_FILE_PATH)) {
+      const data = fs.readFileSync(LOG_FILE_PATH, 'utf8');
+      logs = JSON.parse(data);
+    }
+  } catch (error) {
+    logs = [];
+  }
+
+  // Add new log
+  logs.push({
+    id: logId.toString(),
+    action: action,
+    timestamp: new Date().toISOString(),
+  });
+
+  logId++;
+
+  // Write back to file
+  fs.writeFileSync(LOG_FILE_PATH, JSON.stringify(logs, null, 2));
+}
 
 async function setupPXE() {
   const aztecNode = createAztecNodeClient(AZTEC_NODE_URL);
@@ -181,6 +209,13 @@ async function writeEnvFile(deploymentInfo, fileName) {
 }
 
 async function createAccountAndDeployContract() {
+  // Delete the log file at start
+  if (fs.existsSync(LOG_FILE_PATH)) {
+    fs.unlinkSync(LOG_FILE_PATH);
+  }
+
+  logId = 1; // Reset counter
+  
   const pxe = await setupPXE();
   const ethRpcUrl = "http://localhost:8545";
 
@@ -200,6 +235,9 @@ async function createAccountAndDeployContract() {
 
   const deploymentInfo = await deployContract(pxe, wallet1);
 
+  writeLog("Created CTF contract. Whoever holds the flag the longest wins!");
+
+
   await writeEnvFile(deploymentInfo,'env.main');
   
   // TODO: CAN BE REPLACED
@@ -217,10 +255,6 @@ async function createAccountAndDeployContract() {
       wallet1
   );
 
-    // const contract2 = await CTFContract.at(
-    //   AztecAddress.fromString(contractAddress),
-    //   wallet2
-    // );
 
     const contract3 = await CTFContract.at(
       AztecAddress.fromString(contractAddress),
@@ -245,25 +279,26 @@ async function createAccountAndDeployContract() {
       })
       .wait();
 
-    console.log("INIT THE GAME")
+    writeLog("CTF contract is initialized for the context to last 10 blocks.");
 
     contract1.methods.join(true).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
-
+    
+    writeLog("Wallet 1 joins the game and grabs the flag.");
 
     await contract3.methods.join(false).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
-    console.log("User 3 joined the game")
+    writeLog("Wallet 3 joins the game.");
 
     // User 3 challenges user 1 for the flag
     await contract3.methods.challenge(wallet1.getAddress()).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
-    console.log("User 3 challenges user 1");
+    writeLog("Wallet 3 challenges Wallet 1 for the flag.");
 
     await mine_block(2, contract1, sponsoredPaymentMethod)
 
@@ -272,15 +307,19 @@ async function createAccountAndDeployContract() {
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
-    console.log("User 1 responds to challenge and loses the flag :(");
+    writeLog('Wallet 1 responds to the challenge and loses the flag to wallet 3');
 
-    await mine_block(8, contract1, sponsoredPaymentMethod)
+    await mine_block(4, contract1, sponsoredPaymentMethod);
+
+    writeLog('10 blocks have passed, no more points can be earned');
+
+    await mine_block(4, contract1, sponsoredPaymentMethod);
 
     await contract1.methods.submit_score().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
-    console.log("user 1 submits the score")
+    writeLog('Wallet 1 reveals their score');
 
     await mine_block(2, contract1, sponsoredPaymentMethod)
 
@@ -288,34 +327,26 @@ async function createAccountAndDeployContract() {
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
-    console.log("user 3 submits the score")
+    writeLog('Wallet 3 reveals their score');
+
+
 
     await mine_block(2, contract1, sponsoredPaymentMethod)
 
     const winner = await contract1.methods.winner().simulate({
       fee: { paymentMethod: sponsoredPaymentMethod }
     })
-    console.log("winner is....hopefully user 3", winner)
+
 
     const winnerScore = await contract1.methods.winner_score().simulate({
       fee: { paymentMethod: sponsoredPaymentMethod }
     })
 
-    console.log("winner score", winnerScore)
+    writeLog(`The winner is revealed - Wallet 3 wins with a score ${winnerScore}!`);
 
-    const player1Score = await contract1.methods.user_score(wallet1.getAddress()).simulate({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    })
-
-    const player3Score = await contract1.methods.user_score(wallet3.getAddress()).simulate({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    })
-
-    console.log("player 1 score", player1Score)
-    console.log("player 3 score", player3Score)
-
-  // // Clean up the PXE store
   fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });
+
+  return;
 }
 
 async function mine_block(count: number, contract: any, sponsoredPaymentMethod: any) {
@@ -324,13 +355,13 @@ async function mine_block(count: number, contract: any, sponsoredPaymentMethod: 
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
-    console.log("Mined block");
+    writeLog("Block mined");
   }
 }
 
-createAccountAndDeployContract().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+// createAccountAndDeployContract().catch((error) => {
+//   console.error(error);
+//   process.exit(1);
+// });
 
 export { createAccountAndDeployContract };
