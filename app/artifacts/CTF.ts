@@ -121,54 +121,63 @@ export class CTFContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'admin' | 'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'capture_note' | 'tally_note'> {
+  public static get storage(): ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'num_players' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'> {
       return {
-        admin: {
+        start: {
       slot: new Fr(1n),
     },
-start: {
+end: {
       slot: new Fr(3n),
     },
-end: {
+join_fee: {
       slot: new Fr(5n),
     },
-join_fee: {
+challenge_fee: {
       slot: new Fr(7n),
     },
-challenge_fee: {
+slash_fee: {
       slot: new Fr(9n),
     },
-slash_fee: {
+deposit_size: {
       slot: new Fr(11n),
     },
-deposit_size: {
+is_init: {
       slot: new Fr(13n),
     },
-challenger: {
+num_players: {
+      slot: new Fr(14n),
+    },
+deposits: {
       slot: new Fr(15n),
     },
-challenge_block: {
+challenger: {
       slot: new Fr(16n),
     },
-final_score: {
+challenge_block: {
       slot: new Fr(17n),
     },
-game_over: {
+final_score: {
       slot: new Fr(18n),
     },
+game_over: {
+      slot: new Fr(19n),
+    },
 winner: {
-      slot: new Fr(22n),
+      slot: new Fr(23n),
     },
 winner_score: {
-      slot: new Fr(26n),
+      slot: new Fr(27n),
+    },
+first_capture: {
+      slot: new Fr(31n),
     },
 capture_note: {
-      slot: new Fr(30n),
+      slot: new Fr(35n),
     },
 tally_note: {
-      slot: new Fr(31n),
+      slot: new Fr(36n),
     }
-      } as ContractStorageLayout<'admin' | 'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'capture_note' | 'tally_note'>;
+      } as ContractStorageLayout<'start' | 'end' | 'join_fee' | 'challenge_fee' | 'slash_fee' | 'deposit_size' | 'is_init' | 'num_players' | 'deposits' | 'challenger' | 'challenge_block' | 'final_score' | 'game_over' | 'winner' | 'winner_score' | 'first_capture' | 'capture_note' | 'tally_note'>;
     }
     
 
@@ -199,14 +208,23 @@ CaptureNote: {
     /** has_flag() */
     has_flag: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** initialize(start: integer, end: integer, join_fee: field, challenge_fee: field, slash_fee: field, deposit_size: field) */
+    initialize: ((start: (bigint | number), end: (bigint | number), join_fee: FieldLike, challenge_fee: FieldLike, slash_fee: FieldLike, deposit_size: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** join() */
     join: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** nothing() */
+    nothing: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** respond(challenger: struct) */
     respond: ((challenger: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** slash(address: struct) */
+    slash: ((address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** submit_score() */
     submit_score: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

@@ -6,6 +6,9 @@ pub contract CTF {
         macros::{functions::{private, public, view}, storage::{storage}},
         messages::logs::note::encode_and_encrypt_note};
 
+    use dep::aztec::capsules::CapsuleArray;
+
+    // Define a base slot for your array
     use dep::aztec::utils::comparison::{compare, Comparator};
 
     use dep::aztec:: macros::{
@@ -44,6 +47,8 @@ pub contract CTF {
         winner: SharedMutable<AztecAddress, 1, Context>,
         winner_score: SharedMutable<u32, 1, Context>,
         
+        first_capture: SharedMutable<bool, 1, Context>,
+        
         capture_note: Map<AztecAddress, PrivateMutable<CaptureNote, Context>, Context>,
         tally_note: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
     }
@@ -63,15 +68,14 @@ pub contract CTF {
         randomness: Field
     }
 
-
     impl CaptureNote {
-        pub fn new(owner: AztecAddress) -> Self {
+        pub fn new(owner: AztecAddress, capture_block: u32) -> Self {
             // Safety: We use the randomness to preserve the privacy of the note recipient by preventing brute-forcing,
             // so a malicious sender could use non-random values to make the note less private. But they already know
             // the full note pre-image anyway, and so the recipient already trusts them to not disclose this
             // information. We can therefore assume that the sender will cooperate in the random value generation.
             let randomness: Field = unsafe { random() };
-            CaptureNote { owner, capture_block: 0, randomness }
+            CaptureNote { owner, capture_block, randomness }
         }
     }
 
@@ -105,7 +109,7 @@ pub contract CTF {
         block: Field
     }
 
-    #[initializer]
+    // #[initializer]
     #[public]
     fn initialize(
         start: u32, 
@@ -121,27 +125,50 @@ pub contract CTF {
         storage.challenge_fee.initialize(challenge_fee);
         storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
-        storage.is_init.write(false);
+        // TODO: REVERT ME
+        storage.is_init.write(true);
         storage.num_players.write(0);
     }
 
     #[private]
-    fn join(game_id: AztecAddress) {
-        let capture_note = CaptureNote::new(context.msg_sender());
-        let tally_note = TallyNote::new(context.msg_sender());
-        storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
-            &mut context,
-            context.msg_sender(),
-            context.msg_sender(),
-         ));
-        storage.tally_note.at(context.msg_sender()).replace(tally_note).emit(encode_and_encrypt_note(
-            &mut context,
-            context.msg_sender(),
-            context.msg_sender(),
-         ));
+    fn join() {
+        // // This is bad, we need scheduled value but its not working?
+        // if (storage.first_capture.get_current_value()) {
+            let capture_note = CaptureNote::new(context.msg_sender(), 1);
+            let tally_note: TallyNote = TallyNote::new(context.msg_sender());
+            storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
+                &mut context,
+                context.msg_sender(),
+                context.msg_sender(),
+            ));
+            storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
+                &mut context,
+                context.msg_sender(),
+                context.msg_sender(),
+            ));
+
+        // } else {
+        //     let capture_note = CaptureNote::new(context.msg_sender(), 0);
+        //     let tally_note: TallyNote = TallyNote::new(context.msg_sender());
+        //     storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
+        //         &mut context,
+        //         context.msg_sender(),
+        //         context.msg_sender(),
+        //     ));
+        //     storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
+        //         &mut context,
+        //         context.msg_sender(),
+        //         context.msg_sender(),
+        //     ));
+        // }
+
 
         CTF::at(context.this_address())
             ._join()
+            .enqueue(&mut context);
+
+        CTF::at(context.this_address())
+            ._first_capture()
             .enqueue(&mut context);
     }
 
@@ -151,6 +178,13 @@ pub contract CTF {
         let prev = storage.num_players.read();
         storage.num_players.write(prev + 1);
     }
+
+    #[public]
+    #[internal]
+    fn _first_capture() {
+        storage.first_capture.schedule_value_change(true);
+    }
+
 
     #[view]
     #[private]
@@ -190,9 +224,12 @@ pub contract CTF {
     #[public]
     #[internal]
     fn _submit_score(sender: AztecAddress, score: u32) {
-        if(storage.game_over.get_current_value()) {
+        let (gameOver, _) = storage.game_over.get_scheduled_value();
+
+        if(gameOver) {
             storage.final_score.at(sender).schedule_value_change(score);
-            if(storage.winner_score.get_current_value() < score) {
+            let (winner_score, _) = storage.winner_score.get_scheduled_value();
+            if(winner_score < score) {
                 storage.winner_score.schedule_value_change(score);
                 storage.winner.schedule_value_change(sender);
             }
@@ -209,11 +246,7 @@ pub contract CTF {
     #[public]
     fn challenge(address: AztecAddress) {
         // Ensure the game is initialized
-        if !storage.is_init.read() {
-            
-        }
-
-
+        if !storage.is_init.read() {}
         let challenger = storage.challenger.at(address).read();
     
         // Abort if someone has already written to this key
@@ -224,6 +257,8 @@ pub contract CTF {
         context.emit_public_log(
             ChallengeEvent { challenger: challenger, defender: address, block: context.block_number() }        );
 
+        storage.challenger.at(address).write(context.msg_sender());
+        storage.challenge_block.at(address).schedule_value_change(context.block_number() as u32);
     }
 
     #[public]
@@ -240,7 +275,6 @@ pub contract CTF {
         let capture_note = slot.get_note().note;
         let challenge_block = storage.challenge_block.at(context.msg_sender()).get_current_value();
 
-
         let tally_note = storage.tally_note.at(context.msg_sender()).get_note().note;
         let mut new_tally = tally_note.tally;
 
@@ -250,8 +284,9 @@ pub contract CTF {
         }
 
         // Relinquish the flag
-        let new_capture_note = CaptureNote::new(context.msg_sender());
-        slot.replace(new_capture_note).emit(encode_and_encrypt_note(
+        // TODO: FIX ME, need block number
+        let new_capture_note = CaptureNote::new(context.msg_sender(), 100);
+        slot.initialize_or_replace(new_capture_note).emit(encode_and_encrypt_note(
             &mut context,
             challenger,
             context.msg_sender(),
@@ -266,7 +301,7 @@ pub contract CTF {
             capture_block: challenge_block,
             randomness
         };
-        challenger_slot.replace(challenger_capture_note).emit(encode_and_encrypt_note(
+        challenger_slot.initialize_or_replace(challenger_capture_note).emit(encode_and_encrypt_note(
             &mut context,
             challenger,
             context.msg_sender(),
@@ -285,12 +320,17 @@ pub contract CTF {
         storage.challenge_block.at(sender).schedule_value_change(0);
     }
 
-    /// Returns a random u32 in the range [0, n)
     #[public]
-    fn rand_u32(n: u32) -> u32 {
-        // let r: Field = random();
-        let r_field: Field = rand_oracle();
-        let r: u32 = r_field as u32;
-        r % n
+    fn nothing() {
     }
+
+
+    // /// Returns a random u32 in the range [0, n)
+    // #[public]
+    // fn rand_u32(n: u32) -> u32 {
+    //     // let r: Field = random();
+    //     let r_field: Field = rand_oracle();
+    //     let r: u32 = r_field as u32;
+    //     r % n
+    // }
 }

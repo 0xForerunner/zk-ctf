@@ -19,6 +19,8 @@ import { SponsoredFPCContractArtifact } from '@aztec/noir-contracts.js/Sponsored
 import { SPONSORED_FPC_SALT } from '@aztec/constants';
 // @ts-ignore
 import { CTFContract } from '../app/artifacts/CTF.ts';
+import { ADDRGETNETWORKPARAMS } from 'dns';
+import { CheatCodes } from '@aztec/aztec.js/testing';
 
 const AZTEC_NODE_URL = process.env.AZTEC_NODE_URL || 'http://localhost:8080';
 const PROVER_ENABLED = process.env.PROVER_ENABLED === 'false' ? false : true;
@@ -118,7 +120,7 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
     (address: AztecAddress, wallet: Wallet) =>
     CTFContract.at(address, wallet),
     [deployer.getAddress().toField()],
-    getDefaultInitializer(CTFContract.artifact)?.name
+    // getDefaultInitializer(CTFContract.artifact)?.name
   );
 
   const sponsoredPFCContract = await getSponsoredPFCContract();
@@ -167,6 +169,9 @@ async function writeEnvFile(deploymentInfo) {
 
 async function createAccountAndDeployContract() {
   const pxe = await setupPXE();
+  const ethRpcUrl = "http://localhost:8545";
+
+  const cc = await CheatCodes.create([ethRpcUrl], pxe);
 
   // Register the SponsoredFPC contract (for sponsored fee payments)
   await pxe.registerContract({
@@ -197,7 +202,9 @@ async function createAccountAndDeployContract() {
 
   const blockNumber = await pxe.getBlockNumber()
 
-    // Prepare contract interaction
+  console.log("BLOKC NUMBER")
+  console.log( blockNumber)
+
     const contract1 = await CTFContract.at(
       AztecAddress.fromString(deploymentInfo.contractAddress),
       wallet1
@@ -217,50 +224,70 @@ async function createAccountAndDeployContract() {
     const sponsoredPFCContract = await getSponsoredPFCContract();
     const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
 
-
-    // Get block number
-
-    await contract1.methods.initialize({
-      start: blockNumber,
-      end: blockNumber + 10,
-      join_fee: 0,
-      challenge_fee: 0,
-      slash_fee: 0,
-      deposit_size: 0
-      deposit_size: 0
-    }).send({
+    console.log("ATTEMPTING TO INIT THE GAME")
+      
+    await contract1.methods.initialize(
+      blockNumber,
+      blockNumber + 10,
+      0,
+      0,
+      0,
+      0).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    })
+    }).wait();
 
+    console.log("INIT THE GAME")
 
 
     // All users join
-    await contract1.methods.join().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    })
 
     await contract2.methods.join().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    })
+    }).wait()
 
     await contract3.methods.join().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    })
+    }).wait()
 
-    // // User 1 takes the flag
-    // await contract1.methods.capture().send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
+    await contract1.methods.join().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait()
 
-    // // User 2 challenges user 1 for the flag
-    // await contract2.methods.challenge(wallet1.getAddress()).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
 
-    // // User 1 responds to challenge and User 2 gets the flag
-    // await contract1.methods.respond(wallet2.getAddress()).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait();
+    console.log("ALL PLAYERS JOINED, user 1 has the flag")
+
+    const user1HasFlag = await contract1.methods.has_flag().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait()
+
+    console.log("DOES USER 1 have flag???" , user1HasFlag);
+
+    // User 2 challenges user 1 for the flag
+    await contract2.methods.challenge(wallet1.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // User 1 responds to challenge and User 2 gets the flag
+    await contract1.methods.respond(wallet2.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    // Force two blocks
+    await contract1.methods.nothing().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    await contract1.methods.nothing().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+
+    const user1HasFlag2 = await contract1.methods.has_flag().send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait()
+
+    console.log("DOES USER 1 have flag???" , user1HasFlag2);
+
+
 
     // // User 3 challenges user 1
     // await contract3.methods.challenge(wallet1.getAddress()).send({
