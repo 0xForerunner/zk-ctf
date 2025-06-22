@@ -18,6 +18,10 @@ pub contract CTF {
     };
     use aztec::protocol_types::traits::Packable;
 
+    use aztec::{
+        // event::event_interface::{emit_event_in_public_log},
+        macros::{events::event}
+    }
 
     #[storage]
     struct Storage<Context> {
@@ -68,19 +72,16 @@ pub contract CTF {
         }
     }
 
-    #[initializer]
-    #[private]
-    fn constructor() {
-        // let new_flag: FlagNote = FlagNote::new(context.msg_sender());
-        // storage.current_holder.replace(new_flag).emit(encode_and_encrypt_note(
-            // &mut context,
-            // context.msg_sender(),
-            // context.msg_sender(),
-        // ));
+    // Define an event structure
+    #[event]
+    struct ChallengeEvent {
+        challenger: AztecAddress,
+        defender: AztecAddress,
+        block: Field
     }
 
     #[private]
-    fn join(game_id: AztecAddress) {
+    fn join() {
         let capture_note  = CaptureNote::new(context.msg_sender());
         let tally_note  = TallyNote::new(context.msg_sender());
         storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
@@ -117,6 +118,12 @@ pub contract CTF {
         assert(challenger != AztecAddress::zero(), "Challenge already exists for this address");
 
         let challenger = context.msg_sender();
+
+        emit_event_in_public_log(
+            ChallengeEvent { challenger: challenger, defender: address, block: context.block_number() },
+            &mut context,
+        );
+
     }
 
     #[private]
