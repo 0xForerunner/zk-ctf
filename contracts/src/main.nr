@@ -89,14 +89,14 @@ pub contract CTF {
     }
 
     impl TallyNote {
-        pub fn new(owner: AztecAddress) -> Self {
+        pub fn new(owner: AztecAddress, tally: u32) -> Self {
             // Safety: We use the randomness to preserve the privacy of the note recipient by preventing brute-forcing,
             // so a malicious sender could use non-random values to make the note less private. But they already know
             // the full note pre-image anyway, and so the recipient already trusts them to not disclose this
             // information. We can therefore assume that the sender will cooperate in the random value generation.
             let randomness: Field = unsafe { random() };
 
-            TallyNote { owner, tally: 0 , randomness}
+            TallyNote { owner, tally , randomness}
         }
     }
 
@@ -133,7 +133,7 @@ pub contract CTF {
     fn join(want_flag: bool, block_number: u32) {
         if(want_flag) {
             let capture_note = CaptureNote::new(context.msg_sender(), block_number);
-            let tally_note = TallyNote::new(context.msg_sender());
+            let tally_note = TallyNote::new(context.msg_sender(), 0);
             storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
                 &mut context,
                 context.msg_sender(),
@@ -146,7 +146,7 @@ pub contract CTF {
             ));
         } else {
             let capture_note = CaptureNote::new(context.msg_sender(), 0);
-            let tally_note = TallyNote::new(context.msg_sender());
+            let tally_note = TallyNote::new(context.msg_sender(), 0);
             storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
                 &mut context,
                 context.msg_sender(),
@@ -250,8 +250,9 @@ pub contract CTF {
         let capture_note = responder_slot.get_note().note;
         let challenge_block = storage.challenge_block.at(context.msg_sender()).get_current_value();
 
-        let tally_note = storage.tally_note.at(context.msg_sender()).get_note().note;
-        let mut new_tally = tally_note.tally;
+        let tally_slot = storage.tally_note.at(context.msg_sender());
+        let tally_note = tally_slot.get_note().note;
+        let mut new_tally_note = TallyNote::new(context.msg_sender(), tally_note.tally);
         let mut new_capture_note = capture_note;
         let randomness: Field = unsafe { random() };
         let mut challenger_capture_note = CaptureNote {
@@ -261,7 +262,7 @@ pub contract CTF {
         };
 
         if capture_note.capture_block != 0 {
-            new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
+            new_tally_note.tally = new_tally_note.tally + challenge_block - capture_note.capture_block;
             new_capture_note = CaptureNote::new(context.msg_sender(), 0);
             challenger_capture_note = CaptureNote {
                 owner: challenger,
@@ -270,6 +271,13 @@ pub contract CTF {
             };
         }
 
+        // Emit the tally note
+        tally_slot.initialize_or_replace(new_tally_note).emit(encode_and_encrypt_note(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+        ));
+
         // Relinquish the flag
         responder_slot.initialize_or_replace(new_capture_note).emit(encode_and_encrypt_note(
             &mut context,
@@ -277,7 +285,7 @@ pub contract CTF {
             context.msg_sender(),
         ));
 
-        // emit the old note to the challenger
+        // emit the note to the challenger
         let challenger_slot = storage.capture_note.at(challenger);
         challenger_slot.initialize_or_replace(challenger_capture_note).emit(encode_and_encrypt_note(
             &mut context,
