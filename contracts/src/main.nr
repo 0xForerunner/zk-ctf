@@ -108,7 +108,6 @@ pub contract CTF {
         tally: u32,
     }
 
-
     #[public]
     fn initialize(
         start: u32, 
@@ -243,6 +242,18 @@ pub contract CTF {
     #[private]
     fn tally() -> u32 {
         let note = storage.tally_note.at(context.msg_sender()).get_note();
+
+        let event0 = TallyEvent { address: context.msg_sender(), tally: note.note.tally };
+
+        // context.emit_event_in_private_log(
+        //     event0,
+        //     &mut context,
+        //     context.msg_sender(),
+        //     context.msg_sender(),
+        //     PrivateLogContent.CONSTRAINED_ENCRYPTION,
+        // );
+
+
         note.note.tally
     }
 
