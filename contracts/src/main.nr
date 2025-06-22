@@ -255,8 +255,6 @@ pub contract CTF {
         }
 
         // Relinquish the flag
-        // TODO: FIX ME, need block number
-        let new_capture_note = CaptureNote::new(context.msg_sender(), 0);
         responder_slot.initialize_or_replace(new_capture_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
