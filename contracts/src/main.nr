@@ -240,24 +240,17 @@ pub contract CTF {
 
         let tally_slot = storage.tally_note.at(context.msg_sender());
         let tally_note = tally_slot.get_note().note;
-        let mut new_tally_note = TallyNote::new(context.msg_sender(), tally_note.tally);
-        let mut new_capture_note = capture_note;
-        let randomness: Field = unsafe { random() };
-        let mut challenger_capture_note = CaptureNote {
-            owner: challenger,
-            capture_block: 0,
-            randomness
-        };
 
-        // If they have captured before and its a succesful capture by the challenger, update the tally
+        // New values assuming the reponder does not have the flag 
+        let mut new_tally_note = TallyNote::new(context.msg_sender(), tally_note.tally);
+        let new_responder_note = CaptureNote::new(context.msg_sender(), 0);
+        let mut challenger_capture_note = CaptureNote::new(challenger, 0);
+
+        // The responder has the flag
+        // Update the values accordingly
         if capture_note.capture_block != 0 {
             new_tally_note.tally = new_tally_note.tally + challenge_block - capture_note.capture_block;
-            new_capture_note = CaptureNote::new(context.msg_sender(), 0);
-            challenger_capture_note = CaptureNote {
-                owner: challenger,
-                capture_block: challenge_block,
-                randomness
-            };
+            challenger_capture_note.capture_block = challenge_block;
         }
 
         // Emit the tally note
@@ -268,7 +261,7 @@ pub contract CTF {
         ));
 
         // Relinquish the flag
-        responder_slot.initialize_or_replace(new_capture_note).emit(encode_and_encrypt_note(
+        responder_slot.initialize_or_replace(new_responder_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
