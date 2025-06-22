@@ -37,7 +37,6 @@ pub contract CTF {
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
         
         final_score: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
-        game_over: SharedMutable<bool, 1, Context>,
         winner: SharedMutable<AztecAddress, 1, Context>,
         winner_score: SharedMutable<u32, 1, Context>,
         
@@ -208,15 +207,12 @@ pub contract CTF {
     #[internal]
     fn _submit_score(sender: AztecAddress, score: u32) {
         assert(context.block_number() as u32 > storage.end.read(), "Game is not over yet");
-        let (gameOver, _) = storage.game_over.get_scheduled_value();
 
-        if(gameOver) {
-            storage.final_score.at(sender).schedule_value_change(score);
-            let (winner_score, _) = storage.winner_score.get_scheduled_value();
-            if(winner_score < score) {
-                storage.winner_score.schedule_value_change(score);
-                storage.winner.schedule_value_change(sender);
-            }
+        storage.final_score.at(sender).schedule_value_change(score);
+        let (winner_score, _) = storage.winner_score.get_scheduled_value();
+        if(winner_score < score) {
+            storage.winner_score.schedule_value_change(score);
+            storage.winner.schedule_value_change(sender);
         }
     }
 
