@@ -175,9 +175,6 @@ async function createAccountAndDeployContract() {
 
   // Create a new account
   const { wallet, /* signingKey */ } = await createAccount(pxe);
-
-  console.log("DEPLOYER WALLET");
-  console.log(wallet);
     
   // // Save the wallet info
   // const walletInfo = {
@@ -200,27 +197,26 @@ async function createAccountAndDeployContract() {
     await writeEnvFile(deploymentInfo);
   }
 
+    const { wallet: wallet2 } = await createAccount(pxe);
+
     // Prepare contract interaction
     const contract = await CTFContract.at(
       AztecAddress.fromString(deploymentInfo.contractAddress),
-      wallet
+      wallet2
     );
 
-    // Prepare the sponsored fee payment method
-  const sponsoredPFCContract = await getSponsoredPFCContract();
-  const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
+      // Prepare the sponsored fee payment method
+    const sponsoredPFCContract = await getSponsoredPFCContract();
+    const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
 
-  // Send the transaction with the fee payment method
-  const tx = await contract.methods.claim(wallet.getAddress()).send({
-    fee: { paymentMethod: sponsoredPaymentMethod }
-  }).wait();
-  console.log(tx)
+    // Send the transaction with the fee payment method
+    const tx = await contract.methods.claim(wallet.getAddress()).send({
+      fee: { paymentMethod: sponsoredPaymentMethod }
+    }).wait();
+    console.log(tx)
 
-
-  // Clean up the PXE store
-  fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });
-
-
+    // Clean up the PXE store
+    fs.rmSync(PXE_STORE_DIR, { recursive: true, force: true });
 }
 
 createAccountAndDeployContract().catch((error) => {

@@ -115,12 +115,15 @@ export class CTFContract extends ContractBase {
   }
   
 
-  public static get storage(): ContractStorageLayout<'current_holder'> {
+  public static get storage(): ContractStorageLayout<'current_holder' | 'temp_note'> {
       return {
         current_holder: {
       slot: new Fr(1n),
+    },
+temp_note: {
+      slot: new Fr(2n),
     }
-      } as ContractStorageLayout<'current_holder'>;
+      } as ContractStorageLayout<'current_holder' | 'temp_note'>;
     }
     
 
