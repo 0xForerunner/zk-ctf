@@ -11,6 +11,7 @@ import {
   SponsoredFeePaymentMethod,
   type Wallet,
 } from '@aztec/aztec.js';
+import { computeAuthWitMessageHash } from "@aztec/aztec.js";
 import { createPXEService, getPXEServiceConfig } from '@aztec/pxe/server';
 import { getEcdsaRAccount } from '@aztec/accounts/ecdsa';
 import { createStore } from '@aztec/kv-store/lmdb';
@@ -259,15 +260,12 @@ async function createAccountAndDeployContract() {
     wallet3
   );
 
-
-        // Prepare the sponsored fee payment method
+  // Prepare the sponsored fee payment method
   const sponsoredPFCContract = await getSponsoredPFCContract();
   const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
-    
-
+  
   const bigAmount = 10000000000000000;
   const smallAmount = 1000000000;
-
 
   await tokenContract1.methods.mint_to_public(wallet1.getAddress(), bigAmount).send({
     fee: { paymentMethod: sponsoredPaymentMethod }
@@ -287,16 +285,20 @@ async function createAccountAndDeployContract() {
 
   console.log("minted public to wallet 3");
 
-  // await tokenContract1.methods.mint_to_private(wallet3.getAddress(), wallet3.getAddress(), smallAmount).send({
-  //   fee: { paymentMethod: sponsoredPaymentMethod }
-  // }).wait()
+  await tokenContract1.methods.mint_to_private(wallet3.getAddress(), wallet3.getAddress(), smallAmount).send({
+    fee: { paymentMethod: sponsoredPaymentMethod }
+  }).wait()
 
-  // console.log("minted private to wallet 3");
 
-    const contract1 = await CTFContract.at(
+  console.log("minted private to wallet 3");
+
+  const wallet3PrivateBalance = await tokenContract3.methods.balance_of_private(wallet3.getAddress()).simulate()
+  console.log("wallet3PrivateBalance", wallet3PrivateBalance);
+
+  const contract1 = await CTFContract.at(
       AztecAddress.fromString(contractAddress),
       wallet1
-    );
+  );
 
     // const contract2 = await CTFContract.at(
     //   AztecAddress.fromString(contractAddress),
@@ -308,13 +310,15 @@ async function createAccountAndDeployContract() {
       wallet3
     );
 
+    const depositAmount = 1000000000;
+
     await contract1.methods.initialize(
       blockNumber,
       blockNumber + 10,
       blockNumber + 15,
       0,
       1000,
-      1000000000,
+      depositAmount,
       tokenDeploymentInfo.contractAddress
       ).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
@@ -328,13 +332,6 @@ async function createAccountAndDeployContract() {
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
-    console.log("User 1 joined the game holding the flag")
-
-    // await contract2.methods.join(false, 0).send({
-    //   fee: { paymentMethod: sponsoredPaymentMethod }
-    // }).wait()
-
-    // console.log("User 2 joined the game")
 
     await contract3.methods.join(false, 0).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
