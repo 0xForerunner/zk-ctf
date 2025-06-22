@@ -26,12 +26,12 @@ pub contract CTF {
     struct Storage<Context> {
         start: PublicImmutable<u32, Context>,
         end: PublicImmutable<u32, Context>,
-        join_fee: PublicImmutable<Field, Context>,
-        challenge_fee: PublicImmutable<Field, Context>,
-        slash_fee: PublicImmutable<Field, Context>,
+        spend_limit: PublicImmutable<u128, Context>,
+        challenge_fee: PublicImmutable<u128, Context>,
         deposit_size: PublicImmutable<u128, Context>,
         token: PublicImmutable<AztecAddress, Context>,
 
+        pot: PublicMutable<u128, Context>,
         deposits: Map<AztecAddress, PublicMutable<u128, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
@@ -39,8 +39,6 @@ pub contract CTF {
         final_score: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
         winner: SharedMutable<AztecAddress, 1, Context>,
         winner_score: SharedMutable<u32, 1, Context>,
-        
-        first_capture: SharedMutable<bool, 1, Context>,
         
         capture_note: Map<AztecAddress, PrivateMutable<CaptureNote, Context>, Context>,
         tally_note: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
@@ -112,17 +110,15 @@ pub contract CTF {
     fn initialize(
         start: u32, 
         end: u32,
-        join_fee: Field,
-        challenge_fee: Field,
-        slash_fee: Field,
+        spend_limit: u128,
+        challenge_fee: u128,
         deposit_size: u128,
         token: AztecAddress,
     ) {
         storage.start.initialize(start);
         storage.end.initialize(end);
-        storage.join_fee.initialize(join_fee);
+        storage.spend_limit.initialize(spend_limit);
         storage.challenge_fee.initialize(challenge_fee);
-        storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
         storage.token.initialize(token);
     }
@@ -262,6 +258,17 @@ pub contract CTF {
         assert(context.block_number() as u32 < storage.end.read(), "Game has ended");
         assert(context.block_number() as u32 > storage.start.read(), "Game has not started");
 
+        let challenge_fee = storage.challenge_fee.read();
+        // Token::at(storage.token.read())
+            // .transfer_in_public(
+                // context.this_address(),
+                // context.msg_sender(),
+                // challenge_fee,
+                // 0
+            // )
+            // .call(&mut context);
+        storage.pot.write(storage.pot.read() + challenge_fee);
+
         // Ensure the game is initialized
         let challenger = storage.challenger.at(address).read();
     
@@ -277,12 +284,32 @@ pub contract CTF {
         storage.challenge_block.at(address).schedule_value_change(context.block_number() as u32);
     }
 
-    #[public]
+    #[private]
     fn slash(address: AztecAddress) {
+        // Set their tally back to 0.
+        let slot = storage.tally_note.at(address);
+        let note = TallyNote::new(address, 0);
+        slot.replace(note).emit(encode_and_encrypt_note(
+            &mut context,
+            address,
+            context.msg_sender(),
+        ));
+
+        // Publically ack the challenge
+        CTF::at(context.this_address())
+            ._slash(context.msg_sender())
+            .enqueue(&mut context);
+    }
+
+    #[public]
+    fn _slash(address: AztecAddress) {
         let challenger = storage.challenger.at(address).read();
     
         // Abort if someone has already written to this key
-        assert(challenger == context.msg_sender(), "You are not the challenger for this address");
+        assert(challenger != AztecAddress::zero() , "Challenge is no longer open");
+
+        storage.deposits.at(address).write(0);
+        storage.pot.write(storage.pot.read() + storage.deposit_size.read());
     }
 
     #[private]
