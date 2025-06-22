@@ -128,14 +128,14 @@ pub contract CTF {
 
     #[private]
     fn join(want_flag: bool) {
-        Token::at(storage.token.read())
-            .transfer_to_public(
-                context.msg_sender(),
-                context.this_address(),
-                storage.deposit_size.read(),
-                0
-            )
-            .call(&mut context);  
+        // Token::at(storage.token.read())
+        //     .transfer_to_public(
+        //         context.msg_sender(),
+        //         context.this_address(),
+        //         storage.deposit_size.read(),
+        //         0
+        //     )
+        //     .call(&mut context);  
 
         let mut capture_block = if want_flag {
             storage.start.read()
@@ -175,24 +175,20 @@ pub contract CTF {
         if context.msg_sender() == storage.winner.get_current_value() {
             refund += storage.pot.read();
         }
-        Token::at(storage.token.read())
-            .transfer_in_public(
-                context.this_address(),
-                context.msg_sender(),
-                refund,
-                0
-            )
-            .call(&mut context);
+        // Token::at(storage.token.read())
+        //     .transfer_in_public(
+        //         context.this_address(),
+        //         context.msg_sender(),
+        //         refund,
+        //         0
+        //     )
+        //     .call(&mut context);
     }
 
     #[private]
     fn has_flag() -> bool {
         let note = storage.capture_note.at(context.msg_sender()).get_note();
         note.note.capture_block != 0
-    }
-
-    #[public]
-    fn end_game() {
     }
 
     #[public]
@@ -251,18 +247,6 @@ pub contract CTF {
     #[private]
     fn tally() -> u32 {
         let note = storage.tally_note.at(context.msg_sender()).get_note();
-
-        let event0 = TallyEvent { address: context.msg_sender(), tally: note.note.tally };
-
-        // context.emit_event_in_private_log(
-        //     event0,
-        //     &mut context,
-        //     context.msg_sender(),
-        //     context.msg_sender(),
-        //     PrivateLogContent.CONSTRAINED_ENCRYPTION,
-        // );
-
-
         note.note.tally
     }
 
@@ -272,14 +256,14 @@ pub contract CTF {
         assert(context.block_number() as u32 > storage.start.read(), "Game has not started");
 
         let challenge_fee = storage.challenge_fee.read();
-        Token::at(storage.token.read())
-            .transfer_in_public(
-                context.this_address(),
-                context.msg_sender(),
-                challenge_fee,
-                0
-            )
-            .call(&mut context);
+        // Token::at(storage.token.read())
+        //     .transfer_in_public(
+        //         context.this_address(),
+        //         context.msg_sender(),
+        //         challenge_fee,
+        //         0
+        //     )
+        //     .call(&mut context);
         storage.pot.write(storage.pot.read() + challenge_fee);
 
         // Ensure the game is initialized

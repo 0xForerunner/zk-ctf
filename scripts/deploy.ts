@@ -250,50 +250,50 @@ async function createAccountAndDeployContract() {
 
   const blockNumber = await pxe.getBlockNumber()
 
-  const tokenContract1 = await TokenContract.at(
-    AztecAddress.fromString(tokenDeploymentInfo.contractAddress),
-    wallet1
-  );
+  // const tokenContract1 = await TokenContract.at(
+  //   AztecAddress.fromString(tokenDeploymentInfo.contractAddress),
+  //   wallet1
+  // );
 
-  const tokenContract3 = await TokenContract.at(
-    AztecAddress.fromString(tokenDeploymentInfo.contractAddress),
-    wallet3
-  );
+  // const tokenContract3 = await TokenContract.at(
+  //   AztecAddress.fromString(tokenDeploymentInfo.contractAddress),
+  //   wallet3
+  // );
 
   // Prepare the sponsored fee payment method
   const sponsoredPFCContract = await getSponsoredPFCContract();
   const sponsoredPaymentMethod = new SponsoredFeePaymentMethod(sponsoredPFCContract.address);
   
-  const bigAmount = 10000000000000000;
-  const smallAmount = 1000000000;
+  // const bigAmount = 10000000000000000;
+  // const smallAmount = 1000000000;
 
-  await tokenContract1.methods.mint_to_public(wallet1.getAddress(), bigAmount).send({
-    fee: { paymentMethod: sponsoredPaymentMethod }
-  }).wait()
+  // await tokenContract1.methods.mint_to_public(wallet1.getAddress(), bigAmount).send({
+  //   fee: { paymentMethod: sponsoredPaymentMethod }
+  // }).wait()
 
-  console.log("minted public to wallet 1");
+  // console.log("minted public to wallet 1");
 
-  await tokenContract1.methods.mint_to_private(wallet1.getAddress(), wallet1.getAddress(), smallAmount).send({
-    fee: { paymentMethod: sponsoredPaymentMethod }
-  }).wait()
+  // await tokenContract1.methods.mint_to_private(wallet1.getAddress(), wallet1.getAddress(), smallAmount).send({
+  //   fee: { paymentMethod: sponsoredPaymentMethod }
+  // }).wait()
 
-  console.log("minted private to wallet 1");
+  // console.log("minted private to wallet 1");
 
-  await tokenContract1.methods.mint_to_public(wallet3.getAddress(), bigAmount).send({
-    fee: { paymentMethod: sponsoredPaymentMethod }
-  }).wait()
+  // await tokenContract1.methods.mint_to_public(wallet3.getAddress(), bigAmount).send({
+  //   fee: { paymentMethod: sponsoredPaymentMethod }
+  // }).wait()
 
-  console.log("minted public to wallet 3");
+  // console.log("minted public to wallet 3");
 
-  await tokenContract1.methods.mint_to_private(wallet3.getAddress(), wallet3.getAddress(), smallAmount).send({
-    fee: { paymentMethod: sponsoredPaymentMethod }
-  }).wait()
+  // await tokenContract1.methods.mint_to_private(wallet3.getAddress(), wallet3.getAddress(), smallAmount).send({
+  //   fee: { paymentMethod: sponsoredPaymentMethod }
+  // }).wait()
 
 
-  console.log("minted private to wallet 3");
+  // console.log("minted private to wallet 3");
 
-  const wallet3PrivateBalance = await tokenContract3.methods.balance_of_private(wallet3.getAddress()).simulate()
-  console.log("wallet3PrivateBalance", wallet3PrivateBalance);
+  // const wallet3PrivateBalance = await tokenContract3.methods.balance_of_private(wallet3.getAddress()).simulate()
+  // console.log("wallet3PrivateBalance", wallet3PrivateBalance);
 
   const contract1 = await CTFContract.at(
       AztecAddress.fromString(contractAddress),
@@ -319,6 +319,7 @@ async function createAccountAndDeployContract() {
       0,
       1000,
       depositAmount,
+      // @ts-ignore a
       tokenDeploymentInfo.contractAddress
       ).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
@@ -326,14 +327,12 @@ async function createAccountAndDeployContract() {
 
     console.log("INIT THE GAME")
 
-    const blockNumber2 = await pxe.getBlockNumber()
-
-    contract1.methods.join(true, blockNumber2).send({
+    contract1.methods.join(true).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
 
-    await contract3.methods.join(false, 0).send({
+    await contract3.methods.join(false).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 

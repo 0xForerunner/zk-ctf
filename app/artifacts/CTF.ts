@@ -211,17 +211,14 @@ TallyNote: {
     /** claim() */
     claim: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** end_game() */
-    end_game: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
     /** has_flag() */
     has_flag: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** initialize(start: integer, end: integer, claim: integer, spend_limit: integer, challenge_fee: integer, deposit_size: integer, token: struct) */
     initialize: ((start: (bigint | number), end: (bigint | number), claim: (bigint | number), spend_limit: (bigint | number), challenge_fee: (bigint | number), deposit_size: (bigint | number), token: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** join(want_flag: boolean, block_number: integer) */
-    join: ((want_flag: boolean, block_number: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** join(want_flag: boolean) */
+    join: ((want_flag: boolean) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** nothing() */
     nothing: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
