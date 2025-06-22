@@ -26,6 +26,7 @@ pub contract CTF {
     struct Storage<Context> {
         start: PublicImmutable<u32, Context>,
         end: PublicImmutable<u32, Context>,
+        claim: PublicImmutable<u32, Context>,
         spend_limit: PublicImmutable<u128, Context>,
         challenge_fee: PublicImmutable<u128, Context>,
         deposit_size: PublicImmutable<u128, Context>,
@@ -110,6 +111,7 @@ pub contract CTF {
     fn initialize(
         start: u32, 
         end: u32,
+        claim: u32,
         spend_limit: u128,
         challenge_fee: u128,
         deposit_size: u128,
@@ -117,6 +119,7 @@ pub contract CTF {
     ) {
         storage.start.initialize(start);
         storage.end.initialize(end);
+        storage.claim.initialize(claim);
         storage.spend_limit.initialize(spend_limit);
         storage.challenge_fee.initialize(challenge_fee);
         storage.deposit_size.initialize(deposit_size);
@@ -177,7 +180,7 @@ pub contract CTF {
 
     #[public]
     fn claim() {
-        assert(context.block_number() as u32 > storage.end.read(), "Game has not ended yet");
+        assert(context.block_number() as u32 > storage.claim.read(), "Claim period has not started yet");
         let mut refund = storage.deposits.at(context.msg_sender()).read();
         if context.msg_sender() == storage.winner.get_current_value() {
             refund += storage.pot.read();
