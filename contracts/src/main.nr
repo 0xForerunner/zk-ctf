@@ -128,14 +128,17 @@ pub contract CTF {
 
     #[private]
     fn join(want_flag: bool) {
-        // Token::at(storage.token.read())
-        //     .transfer_to_public(
-        //         context.msg_sender(),
-        //         context.this_address(),
-        //         storage.deposit_size.read(),
-        //         0
-        //     )
-        //     .call(&mut context);  
+        let token = storage.token.read();
+        if token != AztecAddress::zero() {
+            Token::at(token)
+                .transfer_to_public(
+                    context.msg_sender(),
+                    context.this_address(),
+                    storage.deposit_size.read(),
+                    0
+                )
+                .call(&mut context);  
+        }
 
         let mut capture_block = if want_flag {
             storage.start.read()
@@ -165,24 +168,30 @@ pub contract CTF {
     #[internal]
     fn _join(sender: AztecAddress) {
         // assert(context.block_number() as u32 < storage.start.read(), "Game has already started");
-        storage.deposits.at(sender).write(storage.deposit_size.read());
+        let token = storage.token.read();
+        if token != AztecAddress::zero() {
+            storage.deposits.at(sender).write(storage.deposit_size.read());
+        }
     }
 
     #[public]
     fn claim() {
         assert(context.block_number() as u32 > storage.claim.read(), "Claim period has not started yet");
-        let mut refund = storage.deposits.at(context.msg_sender()).read();
-        if context.msg_sender() == storage.winner.get_current_value() {
-            refund += storage.pot.read();
+        let token = storage.token.read();
+        if token != AztecAddress::zero() {
+            let mut refund = storage.deposits.at(context.msg_sender()).read();
+            if context.msg_sender() == storage.winner.get_current_value() {
+                refund += storage.pot.read();
+            }
+            Token::at(storage.token.read())
+                .transfer_in_public(
+                    context.this_address(),
+                    context.msg_sender(),
+                    refund,
+                    0
+                )
+                .call(&mut context);
         }
-        // Token::at(storage.token.read())
-        //     .transfer_in_public(
-        //         context.this_address(),
-        //         context.msg_sender(),
-        //         refund,
-        //         0
-        //     )
-        //     .call(&mut context);
     }
 
     #[private]
@@ -255,16 +264,19 @@ pub contract CTF {
         assert(context.block_number() as u32 < storage.end.read(), "Game has ended");
         assert(context.block_number() as u32 > storage.start.read(), "Game has not started");
 
-        let challenge_fee = storage.challenge_fee.read();
-        // Token::at(storage.token.read())
-        //     .transfer_in_public(
-        //         context.this_address(),
-        //         context.msg_sender(),
-        //         challenge_fee,
-        //         0
-        //     )
-        //     .call(&mut context);
-        storage.pot.write(storage.pot.read() + challenge_fee);
+        let token = storage.token.read();
+        if token != AztecAddress::zero() {
+            let challenge_fee = storage.challenge_fee.read();
+            Token::at(storage.token.read())
+                .transfer_in_public(
+                    context.this_address(),
+                    context.msg_sender(),
+                    challenge_fee,
+                    0
+                )
+                .call(&mut context);
+            storage.pot.write(storage.pot.read() + challenge_fee);
+        }
 
         // Ensure the game is initialized
         let challenger = storage.challenger.at(address).read();
