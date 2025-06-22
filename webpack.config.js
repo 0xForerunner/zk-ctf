@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import Dotenv from 'dotenv-webpack';
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
 
 const require = createRequire(import.meta.url);
 
@@ -16,6 +17,16 @@ export default (_, argv) => ({
       {
         test: /\.tsx?$/,
         loader: 'ts-loader',
+        options: {
+          transpileOnly: true,
+          compilerOptions: {
+            module: 'esnext',
+            target: 'es2020',
+            moduleResolution: 'node',
+            allowSyntheticDefaultImports: true,
+            esModuleInterop: true,
+          },
+        },
       },
       {
         test: /\.css$/,
@@ -30,17 +41,36 @@ export default (_, argv) => ({
     }),
     new Dotenv({ path: './.env' }),
     new webpack.ProvidePlugin({ Buffer: ['buffer', 'Buffer'] }),
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    }),
+    new NodePolyfillPlugin({
+      includeAliases: ['util', 'path', 'crypto', 'os', 'stream', 'buffer', 'events', 'url', 'querystring', 'assert', 'timers', 'vm', 'string_decoder']
+    }),
   ],
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: ['.ts', '.js', '.json'],
     fallback: {
-      tty: false,
-      path: false,
+      async_hooks: false,
+      'util/types': false,
+      fs: false,
       net: false,
-      crypto: false,
-      util: require.resolve('util/'),
-      assert: require.resolve('assert/'),
-      buffer: require.resolve('buffer/'),
+      tls: false,
+      child_process: false,
+      cluster: false,
+      dgram: false,
+      dns: false,
+      domain: false,
+      module: false,
+      punycode: false,
+      readline: false,
+      repl: false,
+      sys: false,
+      v8: false,
+      worker_threads: false,
+      zlib: false,
+      http: false,
+      https: false,
     },
   },
   devServer: {
@@ -52,5 +82,8 @@ export default (_, argv) => ({
     client: {
       overlay: false,
     },
+  },
+  experiments: {
+    topLevelAwait: true,
   },
 });

@@ -10,6 +10,6 @@
     "app/**/*.ts",
     "tests/**/*.ts",
     "scripts/**/*.ts"
-  ],
+, "nextjs/my-app/pages/api/CTF.ts"  ],
   "exclude": ["node_modules", "dist"]
 }
