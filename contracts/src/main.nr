@@ -31,7 +31,6 @@ pub contract CTF {
         slash_fee: PublicImmutable<Field, Context>,
         deposit_size: PublicImmutable<Field, Context>,
         is_init: PublicMutable<bool, Context>,
-        num_players: PublicMutable<u32, Context>,
         deposits: Map<AztecAddress, PublicMutable<Field, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
@@ -79,7 +78,6 @@ pub contract CTF {
         owner: AztecAddress,
         tally: u32,
         randomness: Field
-
     }
 
     impl TallyNote {
@@ -119,8 +117,6 @@ pub contract CTF {
         storage.challenge_fee.initialize(challenge_fee);
         storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
-        storage.num_players.write(0);
-        
     }
 
     #[private]
