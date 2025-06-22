@@ -258,7 +258,7 @@ async function createAccountAndDeployContract() {
 
     const user1HasFlag = await contract1.methods.has_flag().simulate({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait()
+    });
 
     console.log("DOES USER 1 have flag???" , user1HasFlag);
 

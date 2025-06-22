@@ -126,18 +126,19 @@ pub contract CTF {
         storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
         storage.num_players.write(0);
+        
     }
 
     #[private]
     fn join() {
         let capture_note = CaptureNote::new(context.msg_sender(), 0);
         let tally_note = TallyNote::new(context.msg_sender());
-        storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
+        storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
          ));
-        storage.tally_note.at(context.msg_sender()).replace(tally_note).emit(encode_and_encrypt_note(
+        storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
