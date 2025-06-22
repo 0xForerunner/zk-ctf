@@ -10,13 +10,14 @@ pub contract CTF {
         functions::{initializer, internal }, 
     };
     use dep::aztec::keys::getters::get_public_keys;
-    use dep::aztec::prelude::{AztecAddress, Map, PublicImmutable, PublicMutable, PrivateMutable};
+    use dep::aztec::prelude::{AztecAddress, Map, SharedMutable, PublicImmutable, PublicMutable, PrivateMutable};
     use dep::aztec::protocol_types::traits::{Hash, ToField};
     use aztec::{
         macros::notes::note,
         protocol_types::{traits::{Deserialize, Serialize}},
     };
     use aztec::protocol_types::traits::Packable;
+
 
     #[storage]
     struct Storage<Context> {
@@ -28,7 +29,7 @@ pub contract CTF {
         slash_fee: PublicImmutable<Field, Context>,
         deposit_size: PublicImmutable<Field, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
-        challenge_block: Map<AztecAddress, PublicMutable<u32, Context>, Context>,
+        challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
         capture_note: Map<AztecAddress, PrivateMutable<CaptureNote, Context>, Context>,
         tally_note: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
     }
@@ -122,10 +123,11 @@ pub contract CTF {
     fn respond(challenger: AztecAddress) {
         let slot = storage.capture_note.at(context.msg_sender());
         let capture_note = slot.get_note().note;
+        let challenge_block = storage.challenge_block.at(context.msg_sender()).get_current_value();
 
 
         let tally_note = storage.tally_note.at(context.msg_sender()).get_note().note;
-        let new_tally = tally_note.tally - capture_note.capture_block;
+        let new_tally = tally_note.tally + challenge_block - capture_note.capture_block;
 
         if capture_note.capture_block != 0 {
             // Player has the flag, so we relinquish it
@@ -147,7 +149,7 @@ pub contract CTF {
     #[internal]
     fn _respond(sender: AztecAddress) {
         storage.challenger.at(sender).write(AztecAddress::zero());
-        storage.challenge_block.at(sender).write(0);
+        storage.challenge_block. //.at(sender).write(0);
     }
 
 }
