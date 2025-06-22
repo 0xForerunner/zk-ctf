@@ -241,17 +241,21 @@ async function createAccountAndDeployContract() {
 
     // All users join
 
-    await contract2.methods.join().send({
+    const blockNumber2 = await pxe.getBlockNumber()
+
+    await contract1.methods.join(true, blockNumber2).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
-    await contract3.methods.join().send({
+
+    await contract2.methods.join(false, 0).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
-    await contract1.methods.join().send({
+    await contract3.methods.join(false, 0).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
+
 
 
     console.log("ALL PLAYERS JOINED, user 1 has the flag")

@@ -130,19 +130,35 @@ pub contract CTF {
     }
 
     #[private]
-    fn join() {
-        let capture_note = CaptureNote::new(context.msg_sender(), 0);
-        let tally_note = TallyNote::new(context.msg_sender());
-        storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
-            &mut context,
-            context.msg_sender(),
-            context.msg_sender(),
-         ));
-        storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
-            &mut context,
-            context.msg_sender(),
-            context.msg_sender(),
-         ));
+    fn join(want_flag: bool, block_number: u32) {
+        if(want_flag) {
+            let capture_note = CaptureNote::new(context.msg_sender(), block_number);
+            let tally_note = TallyNote::new(context.msg_sender());
+            storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
+                &mut context,
+                context.msg_sender(),
+                context.msg_sender(),
+            ));
+            storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
+                &mut context,
+                context.msg_sender(),
+                context.msg_sender(),
+            ));
+        } else {
+            let capture_note = CaptureNote::new(context.msg_sender(), 0);
+            let tally_note = TallyNote::new(context.msg_sender());
+            storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
+                &mut context,
+                context.msg_sender(),
+                context.msg_sender(),
+            ));
+            storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
+                &mut context,
+                context.msg_sender(),
+                context.msg_sender(),
+            ));
+        }
+
     }
 
     #[view]

@@ -211,8 +211,8 @@ CaptureNote: {
     /** initialize(start: integer, end: integer, join_fee: field, challenge_fee: field, slash_fee: field, deposit_size: field) */
     initialize: ((start: (bigint | number), end: (bigint | number), join_fee: FieldLike, challenge_fee: FieldLike, slash_fee: FieldLike, deposit_size: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** join() */
-    join: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** join(want_flag: boolean, block_number: integer) */
+    join: ((want_flag: boolean, block_number: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** nothing() */
     nothing: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
