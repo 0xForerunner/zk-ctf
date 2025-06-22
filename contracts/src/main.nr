@@ -133,15 +133,6 @@ use dep::value_note::value_note::ValueNote;
     
         // Abort if someone has already written to this key
         assert(challenger == context.msg_sender(), "You are not the challenger for this address");
-
-    let reward = ValueNote::new(
-        context.msg_sender(),
-        storage.slash_fee.read(),
-    );
-
-    encode_and_encrypt_note(&mut context, caller, context.this_address())
-        .emit_note(reward);
-
     }
 
     #[private]
