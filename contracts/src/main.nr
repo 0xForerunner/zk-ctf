@@ -19,9 +19,8 @@ pub contract CTF {
     use aztec::protocol_types::traits::Packable;
 
     use aztec::{
-        // event::event_interface::{emit_event_in_public_log},
         macros::{events::event}
-    }
+    };
 
     #[storage]
     struct Storage<Context> {
@@ -119,10 +118,10 @@ pub contract CTF {
 
         let challenger = context.msg_sender();
 
-        emit_event_in_public_log(
-            ChallengeEvent { challenger: challenger, defender: address, block: context.block_number() },
-            &mut context,
-        );
+        // emit_event_in_public_log(
+        //     ChallengeEvent { challenger: challenger, defender: address, block: context.block_number() },
+        //     &mut context,
+        // );
 
     }
 
