@@ -142,25 +142,7 @@ pub contract CTF {
             context.msg_sender(),
             context.msg_sender(),
          ));
-
-        CTF::at(context.this_address())
-            ._join()
-            .enqueue(&mut context);
     }
-
-    #[public]
-    #[internal]
-    fn _join() {
-        let prev = storage.num_players.read();
-        storage.num_players.write(prev + 1);
-    }
-
-    #[public]
-    #[internal]
-    fn _first_capture() {
-        storage.first_capture.schedule_value_change(true);
-    }
-
 
     #[view]
     #[private]
