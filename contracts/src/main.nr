@@ -26,7 +26,7 @@ pub contract CTF {
     };
     use std::convert::AsPrimitive;
 
-    use aztec::oracle::random::{random, rand_oracle};   // returns a Field
+    use aztec::oracle::random::{random};   // returns a Field
 
     #[storage]
     struct Storage<Context> {
@@ -125,50 +125,26 @@ pub contract CTF {
         storage.challenge_fee.initialize(challenge_fee);
         storage.slash_fee.initialize(slash_fee);
         storage.deposit_size.initialize(deposit_size);
-        // TODO: REVERT ME
-        storage.is_init.write(true);
         storage.num_players.write(0);
     }
 
     #[private]
     fn join() {
-        // // This is bad, we need scheduled value but its not working?
-        // if (storage.first_capture.get_current_value()) {
-            let capture_note = CaptureNote::new(context.msg_sender(), 1);
-            let tally_note: TallyNote = TallyNote::new(context.msg_sender());
-            storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
-            storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
-
-        // } else {
-        //     let capture_note = CaptureNote::new(context.msg_sender(), 0);
-        //     let tally_note: TallyNote = TallyNote::new(context.msg_sender());
-        //     storage.capture_note.at(context.msg_sender()).initialize_or_replace(capture_note).emit(encode_and_encrypt_note(
-        //         &mut context,
-        //         context.msg_sender(),
-        //         context.msg_sender(),
-        //     ));
-        //     storage.tally_note.at(context.msg_sender()).initialize_or_replace(tally_note).emit(encode_and_encrypt_note(
-        //         &mut context,
-        //         context.msg_sender(),
-        //         context.msg_sender(),
-        //     ));
-        // }
-
+        let capture_note = CaptureNote::new(context.msg_sender(), 0);
+        let tally_note = TallyNote::new(context.msg_sender());
+        storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+         ));
+        storage.tally_note.at(context.msg_sender()).replace(tally_note).emit(encode_and_encrypt_note(
+            &mut context,
+            context.msg_sender(),
+            context.msg_sender(),
+         ));
 
         CTF::at(context.this_address())
             ._join()
-            .enqueue(&mut context);
-
-        CTF::at(context.this_address())
-            ._first_capture()
             .enqueue(&mut context);
     }
 
