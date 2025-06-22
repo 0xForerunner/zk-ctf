@@ -248,19 +248,23 @@ async function createAccountAndDeployContract() {
     }).wait()
 
 
-    await contract2.methods.join(false, 0).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait()
+    console.log("User 1 joined the game holding the flag")
+
+
+    // await contract2.methods.join(false, 0).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait()
+
+
+    console.log("User 2 joined the game")
 
     await contract3.methods.join(false, 0).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait()
 
+    console.log("User 3 joined the game")
 
-
-    console.log("ALL PLAYERS JOINED, user 1 has the flag")
-
-    const user1HasFlag = await contract1.methods.has_flag().simulate({
+    const user1HasFlag = await contract1.methods.has_flag().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     });
 
@@ -271,20 +275,29 @@ async function createAccountAndDeployContract() {
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
+    console.log("User 2 challenges user 1");
 
     // Force two blocks
     await contract1.methods.nothing().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
 
+    console.log("Block passes");
+
+
     await contract1.methods.nothing().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
+
+    console.log("Block passes");
+
 
     // User 1 responds to challenge and User 2 gets the flag
     await contract1.methods.respond(wallet2.getAddress()).send({
       fee: { paymentMethod: sponsoredPaymentMethod }
     }).wait();
+
+    console.log("User 1 responds to challenge and loses the flag :(");
 
 
     const user1HasFlag2 = await contract1.methods.has_flag().send({
@@ -292,8 +305,6 @@ async function createAccountAndDeployContract() {
     }).wait()
 
     console.log("DOES USER 1 have flag???" , user1HasFlag2);
-
-
 
     // // User 3 challenges user 1
     // await contract3.methods.challenge(wallet1.getAddress()).send({

@@ -161,7 +161,6 @@ pub contract CTF {
 
     }
 
-    #[view]
     #[private]
     fn has_flag() -> bool {
         let note = storage.capture_note.at(context.msg_sender()).get_note();
@@ -211,7 +210,6 @@ pub contract CTF {
         }
     }
 
-    #[view]
     #[private]
     fn tally() -> u32 {
         let note = storage.tally_note.at(context.msg_sender()).get_note();
