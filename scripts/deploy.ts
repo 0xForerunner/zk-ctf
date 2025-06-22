@@ -18,8 +18,7 @@ import { getDefaultInitializer } from '@aztec/stdlib/abi';
 import { SponsoredFPCContractArtifact } from '@aztec/noir-contracts.js/SponsoredFPC';
 import { SPONSORED_FPC_SALT } from '@aztec/constants';
 // @ts-ignore
-import { EasyPrivateVotingContract } from '../app/artifacts/EasyPrivateVoting.ts';
-import { CTFContract } from '../app/artifacts/CTF.js';
+import { CTFContract } from '../app/artifacts/CTF.ts';
 
 const AZTEC_NODE_URL = process.env.AZTEC_NODE_URL || 'http://localhost:8080';
 const PROVER_ENABLED = process.env.PROVER_ENABLED === 'false' ? false : true;
@@ -100,11 +99,11 @@ async function createAccount(pxe: PXE) {
 async function deployContract(pxe: PXE, deployer: Wallet) {
   const salt = Fr.random();
   const contract = await getContractInstanceFromDeployParams(
-    EasyPrivateVotingContract.artifact,
+    CTFContract.artifact,
     {
       publicKeys: PublicKeys.default(),
       constructorArtifact: getDefaultInitializer(
-        EasyPrivateVotingContract.artifact
+        CTFContract.artifact
       ),
       constructorArgs: [deployer.getAddress().toField()],
       deployer: deployer.getAddress(),
@@ -115,11 +114,11 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
   const deployMethod = new DeployMethod(
     contract.publicKeys,
     deployer,
-    EasyPrivateVotingContract.artifact,
+    CTFContract.artifact,
     (address: AztecAddress, wallet: Wallet) =>
-      EasyPrivateVotingContract.at(address, wallet),
+    CTFContract.at(address, wallet),
     [deployer.getAddress().toField()],
-    getDefaultInitializer(EasyPrivateVotingContract.artifact)?.name
+    getDefaultInitializer(CTFContract.artifact)?.name
   );
 
   const sponsoredPFCContract = await getSponsoredPFCContract();
@@ -135,7 +134,7 @@ async function deployContract(pxe: PXE, deployer: Wallet) {
   await provenInteraction.send().wait({ timeout: 120 });
   await pxe.registerContract({
     instance: contract,
-    artifact: EasyPrivateVotingContract.artifact,
+    artifact: CTFContract.artifact,
   });
 
   return {
@@ -219,80 +218,80 @@ async function createAccountAndDeployContract() {
     // All users join
     await contract1.methods.join().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    })
 
     await contract2.methods.join().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    })
 
     await contract3.methods.join().send({
       fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    })
 
-    // User 1 takes the flag
-    await contract1.methods.capture().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // User 1 takes the flag
+    // await contract1.methods.capture().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // User 2 challenges user 1 for the flag
-    await contract2.methods.challenge(wallet1.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // User 2 challenges user 1 for the flag
+    // await contract2.methods.challenge(wallet1.getAddress()).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // User 1 responds to challenge and User 2 gets the flag
-    await contract1.methods.respond(wallet2.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // User 1 responds to challenge and User 2 gets the flag
+    // await contract1.methods.respond(wallet2.getAddress()).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // User 3 challenges user 1
-    await contract3.methods.challenge(wallet1.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // User 3 challenges user 1
+    // await contract3.methods.challenge(wallet1.getAddress()).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // User 1 responds to challenge and nothing happens
-    await contract1.methods.respond(wallet3.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // User 1 responds to challenge and nothing happens
+    // await contract1.methods.respond(wallet3.getAddress()).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
   
-    // User 3 challenges user 2
-    await contract3.methods.challenge(wallet2.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // User 3 challenges user 2
+    // await contract3.methods.challenge(wallet2.getAddress()).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // user 2 responds, User 3 gets the flag
-    await contract2.methods.respond(wallet3.getAddress()).send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // user 2 responds, User 3 gets the flag
+    // await contract2.methods.respond(wallet3.getAddress()).send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // TODO: Ensure we are over the end block time
-    // End the game
-    // While not revert, etc
+    // // TODO: Ensure we are over the end block time
+    // // End the game
+    // // While not revert, etc
     
-    await contract1.methods.end_game().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // await contract1.methods.end_game().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
  
-    // All users submit their score
-    await contract1.methods.submit_score().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // All users submit their score
+    // await contract1.methods.submit_score().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
 
-    await contract2.methods.submit_score().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // await contract2.methods.submit_score().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
 
-    await contract3.methods.submit_score().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // await contract3.methods.submit_score().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
-    // Assert the winner is player 3
-    await contract3.methods.winner().send({
-      fee: { paymentMethod: sponsoredPaymentMethod }
-    }).wait();
+    // // Assert the winner is player 3
+    // await contract3.methods.winner().send({
+    //   fee: { paymentMethod: sponsoredPaymentMethod }
+    // }).wait();
 
     // console.log(tx)
 

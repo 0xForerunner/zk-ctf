@@ -2,6 +2,7 @@ use dep::aztec::macros::aztec;
 
 #[aztec]
 pub contract CTF {
+    use dep::aztec::oracle::random::random;
     use aztec::{
         macros::{functions::{private, public, view}, storage::{storage}},
         messages::logs::note::encode_and_encrypt_note};
@@ -56,12 +57,18 @@ pub contract CTF {
         owner: AztecAddress,
         // 0 indicates the player does not have the flag
         capture_block: u32,
+        randomness: Field
     }
 
 
     impl CaptureNote {
         pub fn new(owner: AztecAddress) -> Self {
-            CaptureNote { owner, capture_block: 0 }
+            // Safety: We use the randomness to preserve the privacy of the note recipient by preventing brute-forcing,
+            // so a malicious sender could use non-random values to make the note less private. But they already know
+            // the full note pre-image anyway, and so the recipient already trusts them to not disclose this
+            // information. We can therefore assume that the sender will cooperate in the random value generation.
+            let randomness: Field = unsafe { random() };
+            CaptureNote { owner, capture_block: 0, randomness }
         }
     }
 
@@ -70,11 +77,19 @@ pub contract CTF {
     pub struct TallyNote {
         owner: AztecAddress,
         tally: u32,
+        randomness: Field
+
     }
 
     impl TallyNote {
         pub fn new(owner: AztecAddress) -> Self {
-            TallyNote { owner, tally: 0 }
+            // Safety: We use the randomness to preserve the privacy of the note recipient by preventing brute-forcing,
+            // so a malicious sender could use non-random values to make the note less private. But they already know
+            // the full note pre-image anyway, and so the recipient already trusts them to not disclose this
+            // information. We can therefore assume that the sender will cooperate in the random value generation.
+            let randomness: Field = unsafe { random() };
+
+            TallyNote { owner, tally: 0 , randomness}
         }
     }
 
@@ -222,9 +237,12 @@ pub contract CTF {
 
         // emit the old note to the challenger
         let challenger_slot = storage.capture_note.at(challenger);
+        
+        let randomness: Field = unsafe { random() };
         let challenger_capture_note = CaptureNote {
             owner: challenger,
             capture_block: challenge_block,
+            randomness
         };
         slot.replace(challenger_capture_note).emit(encode_and_encrypt_note(
             &mut context,
