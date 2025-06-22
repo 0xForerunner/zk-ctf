@@ -15,7 +15,7 @@ pub contract CTF {
         protocol_types::{traits::{Deserialize, Serialize}},
     };
     use aztec::protocol_types::traits::Packable;
-
+    use token::Token;
     use aztec::{
         macros::{events::event}
     };
@@ -29,8 +29,9 @@ pub contract CTF {
         join_fee: PublicImmutable<Field, Context>,
         challenge_fee: PublicImmutable<Field, Context>,
         slash_fee: PublicImmutable<Field, Context>,
-        deposit_size: PublicImmutable<Field, Context>,
-        is_init: PublicMutable<bool, Context>,
+        deposit_size: PublicImmutable<u128, Context>,
+        token: PublicImmutable<AztecAddress, Context>,
+
         deposits: Map<AztecAddress, PublicMutable<Field, Context>, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, SharedMutable<u32, 1, Context>, Context>,
@@ -109,7 +110,8 @@ pub contract CTF {
         join_fee: Field,
         challenge_fee: Field,
         slash_fee: Field,
-        deposit_size: Field,
+        deposit_size: u128,
+        token: AztecAddress,
     ) {
         storage.start.initialize(start);
         storage.end.initialize(end);
@@ -148,7 +150,21 @@ pub contract CTF {
                 context.msg_sender(),
             ));
         }
+        CTF::at(context.this_address())
+            ._join(context.msg_sender())
+            .enqueue(&mut context);
+    }
 
+    #[public]
+    #[internal]
+    fn _join(sender: AztecAddress) {
+        assert(context.block_number() as u32 < storage.start.read(), "Game has already started");
+
+        let token = storage.token.read();
+        let deposit_size = storage.deposit_size.read();
+        // Token::at(token)
+        //     .transfer_in_public(sender, context.this_address(), deposit_size, 0)
+        //    .call(&mut context);
     }
 
     #[private]
@@ -159,11 +175,6 @@ pub contract CTF {
 
     #[public]
     fn end_game() {
-        let current_block = context.block_number() as u32;
-        // You can now use current_block for your logic
-        if current_block > storage.end.read() {
-            storage.game_over.schedule_value_change(true);
-        }
     }
 
     #[public]
@@ -188,6 +199,7 @@ pub contract CTF {
     #[public]
     #[internal]
     fn _submit_score(sender: AztecAddress, score: u32) {
+        assert(context.block_number() as u32 > storage.end.read(), "Game is not over yet");
         let (gameOver, _) = storage.game_over.get_scheduled_value();
 
         if(gameOver) {
@@ -208,8 +220,10 @@ pub contract CTF {
 
     #[public]
     fn challenge(address: AztecAddress) {
+        assert(context.block_number() as u32 < storage.end.read(), "Game has ended");
+        assert(context.block_number() as u32 > storage.start.read(), "Game has not started");
+
         // Ensure the game is initialized
-        if !storage.is_init.read() {}
         let challenger = storage.challenger.at(address).read();
     
         // Abort if someone has already written to this key
