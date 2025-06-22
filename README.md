@@ -47,10 +47,12 @@ Please note that this project uses `0.87.9` version of Aztec SDK. If you wish to
 You can install a specific version of Aztec tools by running `aztec-up 0.X.X`
 
 
-2. Compile smart contracts in `/contracts`:
+2. Compile smart contracts in `/contracts` and move into nextjs folder
 
 ```sh
 yarn build-contracts
+mv app/artifacts/* nextjs/my-app/pages/api/
+
 ```
 
 The build script compiles the contract and generates the artifacts.
@@ -62,33 +64,19 @@ Run the sandbox
 aztec start --sandbox
 ```
 
-Run the JS deploy script to deploy the contracts (NodeJS v20.0):
-
-```sh
-yarn install
-yarn deploy-contracts
-```
-
 The deploy script generates a few random accounts that repeatedly capture the flag from each other.
 
 The script also writes the deployment info to `.env` (which our web-app reads from).
 
 > Note that the script generates many client proofs and it may take a couple of seconds. For faster development, you can disable proving by calling with `PROVER_ENABLED=false` (Sandbox accepts transactions without a valid proof).
 
-4. Run the app (development mode):
+4. Run the app (development mode) and 
 
 ```sh
-yarn dev
+npm run dev
+
+open http://localhost:3000
+
+API call to http://localhost:3000/api/start to start the flow
+
 ```
-
-## Disable client proofs
-
-The Sandbox will accept transactions without a valid proof. You can disable proof generation when working against the Sandbox as it will save time during development.
-
-To disable proving in the deploy script, run:
-
-```sh
-PXE_PROVER=none ./deploy.sh
-```
-
-To disable proving in the web app, you can set `PROVER_ENABLED` to `false` in `embedded-wallet.ts` file.
