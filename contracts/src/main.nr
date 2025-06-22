@@ -29,20 +29,9 @@ pub contract CTF {
         deposit_size: PublicImmutable<Field, Context>,
         challenger: Map<AztecAddress, PublicMutable<AztecAddress, Context>, Context>,
         challenge_block: Map<AztecAddress, PublicMutable<u32, Context>, Context>,
-        player_flag: Map<AztecAddress, PrivateMutable<FlagNote, Context>, Context>,
-        player_tally: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
+        capture_note: Map<AztecAddress, PrivateMutable<CaptureNote, Context>, Context>,
+        tally_note: Map<AztecAddress, PrivateMutable<TallyNote, Context>, Context>,
     }
-
-    // #[derive(Eq, Serialize, Deserialize, Packable)]
-    // struct GameMeta {
-        // admin: AztecAddress,
-        // start: u32,
-        // end: u32,
-        // join_fee: Field,
-        // challenge_fee: Field,
-        // slash_fee: Field,
-        // deposit_size: Field,
-    // }
 
     #[derive(Eq, Serialize, Deserialize, Packable)]
     struct Challenge {
@@ -52,15 +41,16 @@ pub contract CTF {
 
     #[note]
     #[derive(Eq, Serialize, Deserialize)]
-    pub struct FlagNote {
+    pub struct CaptureNote {
         owner: AztecAddress,
-        has_flag: bool,
+        // 0 indicates the player does not have the flag
+        capture_block: u32,
     }
 
 
-    impl FlagNote {
+    impl CaptureNote {
         pub fn new(owner: AztecAddress) -> Self {
-            FlagNote { owner, has_flag: true }
+            CaptureNote { owner, capture_block: 0 }
         }
     }
 
@@ -90,58 +80,64 @@ pub contract CTF {
 
     #[private]
     fn join(game_id: AztecAddress) {
-        let flag_note  = FlagNote::new(context.msg_sender());
+        let capture_note  = CaptureNote::new(context.msg_sender());
         let tally_note  = TallyNote::new(context.msg_sender());
-        storage.player_flag.at(context.msg_sender()).replace(flag_note).emit(encode_and_encrypt_note(
+        storage.capture_note.at(context.msg_sender()).replace(capture_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
          ));
-        storage.player_tally.at(context.msg_sender()).replace(tally_note).emit(encode_and_encrypt_note(
+        storage.tally_note.at(context.msg_sender()).replace(tally_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
          ));
-    }
-
-    #[private]
-    fn claim(potential_holder: AztecAddress) {
-        let current_holder = storage.current_holder.get_note().note;
-        if(current_holder.owner == potential_holder) {
-            let new_flag: FlagNote = FlagNote::new(context.msg_sender());
-            storage.current_holder.replace(new_flag).emit(encode_and_encrypt_note(
-                &mut context,
-                context.msg_sender(),
-                context.msg_sender(),
-            ));
-        }
     }
 
     #[view]
     #[private]
     fn has_flag() -> bool {
-        let note = storage.player_flag.at(context.msg_sender()).get_note();
-        note.note.has_flag
+        let note = storage.capture_note.at(context.msg_sender()).get_note();
+        note.note.capture_block != 0
     }
 
     #[view]
     #[private]
     fn tally() -> Field {
-        let note = storage.player_tally.at(context.msg_sender()).get_note();
+        let note = storage.tally_note.at(context.msg_sender()).get_note();
         note.note.tally
     }
 
     #[public]
     fn challenge(address: AztecAddress) {
-        let slot = storage.challenger.at(address).read();
+        let challenger = storage.challenger.at(address).read();
+    
+        // Abort if someone has already written to this key
+        assert(challenger != AztecAddress::zero(), "Challenge already exists for this address");
+
+        let challenger = context.msg_sender();
     }
 
     #[private]
-    fn respond(game_id: Field) {
-        let game = storage.games.at(game_id);
-        let mut chal = game.challenges.at(context.msg_sender().to_field()).get_note();
-        // …verify flag ownership, transfer etc…
-        game.challenges.remove(context.msg_sender().to_field());
+    fn respond(challenger: AztecAddress) {
+        let slot = storage.capture_note.at(context.msg_sender());
+        let note = slot.get_note().note;
+        slot.replace(note).emit(encode_and_encrypt_note(
+            &mut context,
+            challenger,
+            context.msg_sender(),
+        ));
+
+        CTF::at(context.this_address())
+            ._respond(context.msg_sender())
+            .enqueue(&mut context);
+    }
+
+    #[public]
+    #[internal]
+    fn _respond(sender: AztecAddress) {
+        storage.challenger.at(sender).write(AztecAddress::zero());
+        storage.challenge_block.at(sender).write(0);
     }
 
 }
